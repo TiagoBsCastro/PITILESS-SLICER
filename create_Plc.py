@@ -329,6 +329,10 @@ if __name__ == "__main__":
 
    hp.mollview(kappa)
    plt.show()
+
+   cl = hp.anafast(kappa, lmax=512)
+   ell = np.arange(len(cl))
+   np.savetxt("Maps/Cls_kappa_z{}.txt".format(zsource), np.transpose([ell, cl, ell * (ell+1) * cl]))
    '''
    print("FoV:{} Center:{} Face:{} Sgn:{}".format(fovindeg, center, face, sgn))
 
