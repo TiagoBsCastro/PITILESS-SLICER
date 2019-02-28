@@ -1,65 +1,10 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import Snapshot as S
 import ReadPinocchio as rp
-import copy
 import os
 import healpy as hp
-from astropy.cosmology import FlatLambdaCDM, z_at_value
 from astropy.coordinates import cartesian_to_spherical
 from astropy.io import fits
-from astropy.constants import c
-from scipy import optimize as opt
-
-################ Cosmology ###################
-
-cosmo  = FlatLambdaCDM(H0=H0, Om0=Omega0)
-cspeed = c.to('km/s').to_value()
-
-################   PLC   ######################
-
-zlsup = np.linspace(0,zsource,10)[1:]
-zlinf = np.linspace(0,zsource,10)[:-1]
-
-zinterp = np.linspace(0, zsource + deltazplc, int(zsource//deltazplc) + 1 )
-ainterp = 1.0/(1.0+zinterp)
-Dinterp = cosmo.comoving_distance(zinterp).value
-
-########### Timeless Snapshot #################
-
-snap=S.Init("pinocchio.cdm.t_snapshot.out",-1)
-ID=snap.read_block('ID')
-V1=snap.read_block('VZEL')
-V2=snap.read_block('V2')
-V31=snap.read_block('V3_1')
-V32=snap.read_block('V3_2')
-F=snap.read_block('FMAX')
-R=snap.read_block('RMAX')
-Zacc=snap.read_block('ZACC')
-Npart=len(ID)
-NG=np.int(np.float(Npart)**(1./3.)+0.5)
-Lbox=snap.Header.boxsize
-Cell=Lbox/float(NG)
-
-############### Cosmology ######################
-
-(a, t, D, D2, D31, D32) = np.loadtxt('pinocchio.cdm.cosmology.out',usecols=(0,1,2,3,4,5),unpack=True)
-
-#################### PLC #######################
-
-plc = rp.plc('pinocchio.cdm.plc.out')
-MinHaloMass = 10
-plc.Mass = (plc.Mass/plc.Mass.min()*MinHaloMass).astype(int)
-
-############### Randomization ##################
-
-#center = np.random.uniform(0,1,3)
-#face = int(np.ceil(np.random.uniform(0,6)))
-#sgn = (2*( np.ceil(np.random.uniform(-1,1,3))-0.5 )).astype(int)
-center = [0.0,0.0,0.0]
-face = 1
-sgn  = [1, 1, 1]
-
 
 ###################################################
 
