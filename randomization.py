@@ -1,3 +1,6 @@
+from snapshot import wrapPositions
+import numpy as np
+
 def randomizePositions (center, face, sgn, pos):
 
    '''Randomize the positions acording to the SLICER

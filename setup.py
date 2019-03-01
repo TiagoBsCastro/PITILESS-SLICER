@@ -1,5 +1,5 @@
 from distutils.core import setup
 from Cython.Build import cythonize
 
-setup(name='PLC Solver App',
+setup(name='PLC Builder',
       ext_modules=cythonize("builder.pyx"))

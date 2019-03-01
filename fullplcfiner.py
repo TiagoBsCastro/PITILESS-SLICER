@@ -1,22 +1,94 @@
 import numpy as np
-import matplotlib.pyplot as plt
-import ReadPinocchio as rp
-import os
-import healpy as hp
 from astropy.coordinates import cartesian_to_spherical
-from astropy.io import fits
+import matplotlib.pyplot as plt
+import healpy as hp
+import  builder
+import cosmology
+import params
+from randomization import randomizePositions, randomizeVelocities
+from mpi4py import MPI
+
+comm = MPI.COMM_WORLD
+rank = comm.Get_rank()
+size = comm.Get_size()
+
+if params.nparticles%size:
+
+    print("The data cannot be scattered on {} processes!".format(size))
+    exit(-1)
+
+if rank == 0:
+    print("Rank 0 is reading the data!")
+    from snapshot import ID, V1, V2, V31, V32, Cell, Lbox, NG, Zacc
+    print("All done! Let's go!")
+
+comm.barrier()
 
 ###################################################
 
+sgn = 1
+face = 1
+center = [0.5, 0.5, 0.5]
+
 if __name__ == "__main__":
 
-   qPos = np.array([ (ID-1)%NG,((ID-1)//NG)%NG,((ID-1)//NG**2)%NG ]).transpose().astype(float) * Cell + Cell/2.
-   qPos = randomizePositions(center, face, sgn, qPos/Lbox)*Lbox
-   qPos[:,2] -= Lbox/2.0
-   V1  = randomizeVelocities(face, sgn, V1)
-   V2  = randomizeVelocities(face, sgn, V2)
-   V31 = randomizeVelocities(face, sgn, V31)
-   V32 = randomizeVelocities(face, sgn, V32)
+   if rank == 0:
+
+      qPos = np.array([ (ID-1)%NG,((ID-1)//NG)%NG,((ID-1)//NG**2)%NG ]).transpose().astype(float) * Cell + Cell/2.
+      qPos = randomizePositions(center, face, sgn, qPos/Lbox)*Lbox
+      qPos[:,2] -= Lbox/2.0
+      qPos = qPos.astype(np.float32)
+      V1  = Cell*randomizeVelocities(face, sgn, V1)
+      V2  = Cell*randomizeVelocities(face, sgn, V2)
+      V31 = Cell*randomizeVelocities(face, sgn, V31)
+      V32 = Cell*randomizeVelocities(face, sgn, V32)
+
+   else:
+
+      qPos = np.empty((params.nparticles, 3), dtype = np.float32)
+      V1   = np.empty((params.nparticles, 3), dtype = np.float32)
+      V2   = np.empty((params.nparticles, 3), dtype = np.float32)
+      V31  = np.empty((params.nparticles, 3), dtype = np.float32)
+      V32  = np.empty((params.nparticles, 3), dtype = np.float32)
+
+   qPosslice = np.empty((params.nparticles//size, 3), dtype = np.float32)
+   V1slice   = np.empty((params.nparticles//size, 3), dtype = np.float32)
+   V2slice   = np.empty((params.nparticles//size, 3), dtype = np.float32)
+   V31slice  = np.empty((params.nparticles//size, 3), dtype = np.float32)
+   V32slice  = np.empty((params.nparticles//size, 3), dtype = np.float32)
+
+   comm.Scatterv(qPos, qPosslice,root=0)
+   comm.Scatterv(V1  ,V1slice   ,root=0)
+   comm.Scatterv(V2  ,V2slice   ,root=0)
+   comm.Scatterv(V31 ,V31slice  ,root=0)
+   comm.Scatterv(V32 ,V32slice  ,root=0)
+
+   del qPos, V1, V2, V31, V32
+
+   norder = 5
+   amin = 0.5
+   amax = 1.0
+   aplcslice = np.empty(params.nparticles//size).astype(np.float32)
+   cut  = (cosmology.a >= amin) & (cosmology.a < amax)
+   D    = np.polyfit(cosmology.a[cut], cosmology.D[cut], norder)[::-1].astype(np.float32)
+   D2   = np.polyfit(cosmology.a[cut], cosmology.D2[cut], norder)[::-1].astype(np.float32)
+   D31  = np.polyfit(cosmology.a[cut], cosmology.D31[cut], norder)[::-1].astype(np.float32)
+   D32  = np.polyfit(cosmology.a[cut], cosmology.D32[cut], norder)[::-1].astype(np.float32)
+   DPLC = np.polyfit(cosmology.ainterp, cosmology.Dinterp, norder)[::-1].astype(np.float32)
+
+
+   builder.getCrossingScaleParameter (qPosslice, V1slice, V2slice, V31slice, V32slice, aplcslice,
+                                          params.nparticles//size, DPLC, D, D2, D31, D32, norder, amin, amax)
+
+   aplc = np.empty(params.nparticles, dtype = np.float32)
+
+   comm.Gatherv(aplcslice, aplc, root=0)
+
+   if rank:
+
+       exit(0)
+
+   quit()
 
    zplc, sphericalcoord = buildPLCFiner (0.0, zsource, zcentered=False)
    cut = ~np.isnan(sphericalcoord[:,1]) & (zplc >  Zacc)
