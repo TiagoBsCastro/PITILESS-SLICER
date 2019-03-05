@@ -1,5 +1,16 @@
-from snapshot import wrapPositions
 import numpy as np
+
+def wrapPositions (xx):
+
+   xxoutofbox = (xx < 0.0) | (xx > 1.0)
+   xx[xxoutofbox] = np.abs(1.0 - np.abs( xx[xxoutofbox] ))
+   del xxoutofbox
+
+   return xx
+
+def wrapPositionsPart (xx):
+
+    return np.abs(1.0 - np.abs( xx )) if ( (xx < 0.0) | (xx > 1.0) ) else xx
 
 def randomizePositions (center, face, sgn, pos):
 

@@ -9,6 +9,7 @@ import numpy as np
 
 omega0 = 0.0
 h0     = 0.0
+norder = 4
 
 ################## Past Light Cone Parameters #################
 # !!Will be overwritten if a Pinocchio params file is given!! #
@@ -17,8 +18,8 @@ h0     = 0.0
 fovindeg     = 0
 fovinradians = fovindeg * np.pi/180.0
 npixels      = 12*2**14
-zsource      = 1.0
-nlensperbox  = 4
+zsource      = 1.00
+nlensperbox  = 1
 
 #################### Pinocchio Parameters #####################
 #    Reads the parameters from Pinocchio's parameters file    #

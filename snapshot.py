@@ -2,6 +2,7 @@ import params
 import numpy as np
 import cosmology as cosmo
 import Snapshot as S
+from randomization import randomizePositions, randomizeVelocities
 
 ############# Timeless Snapshot ###############
 
@@ -19,19 +20,20 @@ NG=np.int(np.float(Npart)**(1./3.)+0.5)
 Lbox=snap.Header.boxsize
 Cell=Lbox/float(NG)
 
+center = [0.5, 0.5, 0.5]
+face = 1
+sgn = [1, 1, 1]
+
+qPos = np.array([ (ID-1)%NG,((ID-1)//NG)%NG,((ID-1)//NG**2)%NG ]).transpose() * Cell + Cell/2.
+qPos = randomizePositions(center, face, sgn, qPos/Lbox)*Lbox
+qPos[:,2] -= Lbox/2.0
+qPos = qPos.astype(np.float32).reshape((3,NG**3))
+V1  = Cell*randomizeVelocities(face, sgn, V1).astype(np.float32).reshape((3,NG**3))
+V2  = Cell*randomizeVelocities(face, sgn, V2).astype(np.float32).reshape((3,NG**3))
+V31 = Cell*randomizeVelocities(face, sgn, V31).astype(np.float32).reshape((3,NG**3))
+V32 = Cell*randomizeVelocities(face, sgn, V32).astype(np.float32).reshape((3,NG**3))
+
 ###############################################
-
-def wrapPositions (xx):
-
-   xxoutofbox = (xx < 0.0) | (xx > 1.0)
-   xx[xxoutofbox] = np.abs(1.0 - np.abs( xx[xxoutofbox] ))
-   del xxoutofbox
-
-   return xx
-
-def wrapPositionsPart (xx):
-
-    return np.abs(1.0 - np.abs( xx )) if ( (xx < 0.0) | (xx > 1.0) ) else xx
 
 def snapPos (z, zcentered=True, filter=None):
    '''
