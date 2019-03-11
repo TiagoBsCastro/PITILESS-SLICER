@@ -1,6 +1,7 @@
 from readparams import getValueFromFile, typeArrayFromString, checkIfBoolExists
 import os
 import numpy as np
+import sys
 
 ###############################################################
 ################ Cosmological Parameters ######################
@@ -18,8 +19,8 @@ norder = 4
 fovindeg     = 0
 fovinradians = fovindeg * np.pi/180.0
 npixels      = 12*2**14
-zsource      = 1.00
-nlensperbox  = 1
+zsource      = 1.0
+nlensperbox  = 4
 
 #################### Pinocchio Parameters #####################
 #    Reads the parameters from Pinocchio's parameters file    #
@@ -82,7 +83,11 @@ if os.path.isfile(paramfilename):
           print("If this is exactly what you want comment this error Raising in params.py.")
           raise RuntimeError
 
-   except:
+   except FileNotFoundError:
+
+       sys.exit(-1)
+
+   except RuntimeError:
 
       '''
       !! Not set yet, wise Ass !!

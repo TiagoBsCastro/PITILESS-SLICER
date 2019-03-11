@@ -6,7 +6,7 @@ import  builder
 import cosmology
 import params
 from mpi4py import MPI
-import sys
+import os
 
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
@@ -22,13 +22,17 @@ if rank == 0:
     from snapshot import qPos, V1, V2, V31, V32, Cell, Lbox, NG, Zacc
     print("All done! Let's go!")
 
-comm.Barrier()
+    try:
+        os.mkdir("Maps/")
+    except FileExistsError:
+        pass
+
+else:
+    Cell = None
+
+Cell = comm.bcast(Cell, root=0)
 
 ###################################################
-
-center = [0.5, 0.5, 0.5]
-face = 1
-sgn = [1, 1, 1]
 
 if __name__ == "__main__":
 
@@ -65,10 +69,12 @@ if __name__ == "__main__":
    geometry['farthestpoint'] *= Cell
    kappa = np.zeros(params.npixels)
 
-   print("\n++++++++++++++++++++++\n")
+   if not rank:
+      print("\n++++++++++++++++++++++\n")
    for i,(z1,z2) in enumerate( zip(cosmology.zlinf, cosmology.zlsup) ):
 
-      print("Lens plane from z=[{0:.3f},{1:.3f}]".format(z1,z2))
+      if not rank:
+         print("Lens plane from z=[{0:.3f},{1:.3f}]".format(z1,z2))
       dlinf = cosmology.lcdm.comoving_distance(z1).to_value()
       dlsup = cosmology.lcdm.comoving_distance(z2).to_value()
       zl = (z1 + z2)/2.0
@@ -76,6 +82,23 @@ if __name__ == "__main__":
       amax = 1.0/(1.0+z1)
 
       auxcut  = (cosmology.a >= amin) & (cosmology.a <= amax)
+      if not rank:
+         print( "Number of points inside the redshift range is {} values!".format(np.sum(auxcut) ) )
+      if auxcut.sum() == 1:
+          index = auxcut.argmax()
+          if index < auxcut.size:
+              auxcut[index + 1] = True
+          if index > 0:
+              auxcut[index - 1] = True
+      if auxcut.sum() == 0:
+          index = ( (cosmology.a - (amax-amin)/2.0)**2 ).argmin()
+          if index < auxcut.size:
+              auxcut[index + 1] = True
+          if index > 0:
+              auxcut[index - 1] = True
+      if not rank:
+         print( "Interpolating the Cosmological functions using {} values!".format(np.sum(auxcut) ) )
+
       D       = cosmology.getWisePolyFit(cosmology.a[auxcut], cosmology.D[auxcut])
       D2      = cosmology.getWisePolyFit(cosmology.a[auxcut], cosmology.D2[auxcut])
       D31     = cosmology.getWisePolyFit(cosmology.a[auxcut], cosmology.D31[auxcut])
@@ -86,44 +109,50 @@ if __name__ == "__main__":
       replicationsinside = geometry[ (geometry['nearestpoint'] < dlsup) & (geometry['farthestpoint'] >= dlinf) ]
       deltai = np.zeros(params.npixels)
 
-      print(" Replications inside:")
-      for repi in replicationsinside:
+      if not rank:
+         print(" Replications inside:")
 
-         print(" * {} {} {} ".format(*repi[['x','y','z']]))
+      for ii, repi in enumerate(replicationsinside):
+
+         if not rank:
+            print(" * [{}/{}] {} {} {} ".format( str(ii + 1).zfill(int(np.log10(replicationsinside.size) + 1)), replicationsinside.size,
+                                                               repi['x'], repi['y'], repi['z']) )
 
          shift = params.boxsize * np.array(repi[['x','y','z']].tolist())
          builder.getCrossingScaleParameterNewtonRaphson (qPosslice + shift.astype(np.float32), V1slice, V2slice, V31slice, V32slice, aplcslice,
                                                              params.nparticles//size, DPLC, D, D2, D31, D32, params.norder, amin, amax)
 
 
-         aplcslice[ 1.0/aplcslice -1  < Zaccslice ] = -1.0
+         #aplcslice[ 1.0/aplcslice -1  < Zaccslice ] = -1.0
          builder.getSkyCoordinates(qPosslice + shift.astype(np.float32), V1slice, V2slice, V31slice, V32slice, aplcslice, skycoordslice, params.nparticles//size, D, D2, D31, D32, params.norder)
 
-         if rank:
-             zplc     = None
-             skycoord = None
-         else:
-             zplc     = np.empty(params.nparticles, dtype = np.float32)
-             skycoord = np.empty((params.nparticles,3), dtype = np.float32)
+         for ranki in range(size):
 
-         comm.Gatherv(1.0/aplcslice -1, zplc, root=0)
-         comm.Gatherv(skycoordslice, skycoord, root=0)
+            if (rank == ranki) and ranki > 0:
 
-         if rank == 0:
+               comm.Send(skycoordslice, dest=0)
 
-            cut = skycoord[:,0] > 0
-            theta, phi = skycoord[:,1][cut] + np.pi/2.0, skycoord[:,2][cut]
-            pixels = hp.pixelfunc.ang2pix(hp.pixelfunc.npix2nside(params.npixels), theta, phi)
-            deltai += np.histogram(pixels, bins=np.linspace(0,params.npixels,params.npixels+1).astype(int))[0]
+            if rank == 0:
 
-         comm.Barrier()
+               if ranki:
+                  print(" Rank: 0 receving slice from Rank: {}".format(ranki))
+                  comm.Recv(skycoordslice, source=ranki)
+               else:
+                  print(" Rank: 0 working on its own load".format(ranki))
+
+               cut = skycoordslice[:,0] > 0
+               theta, phi = skycoordslice[:,1][cut] + np.pi/2.0, skycoordslice[:,2][cut]
+               pixels = hp.pixelfunc.ang2pix(hp.pixelfunc.npix2nside(params.npixels), theta, phi)
+               deltai += np.histogram(pixels, bins=np.linspace(0,params.npixels,params.npixels+1).astype(int))[0]
+
+            comm.Barrier()
 
       if rank == 0:
 
-         groupsinplane = (cosmology.plc.redshift <= z2) & (cosmology.plc.redshift > z1)
-         pixels = hp.pixelfunc.ang2pix(hp.pixelfunc.npix2nside(params.npixels), \
-                                     cosmology.plc.theta[groupsinplane]*np.pi/180.0+np.pi/2.0, cosmology.plc.phi[groupsinplane]*np.pi/180.0)
-         deltai += np.histogram(pixels, bins=np.linspace(0,params.npixels,params.npixels+1).astype(int), weights=cosmology.plc.Mass[groupsinplane])[0]
+         #groupsinplane = (cosmology.plc.redshift <= z2) & (cosmology.plc.redshift > z1)
+         #pixels = hp.pixelfunc.ang2pix(hp.pixelfunc.npix2nside(params.npixels), \
+         #                            cosmology.plc.theta[groupsinplane]*np.pi/180.0+np.pi/2.0, cosmology.plc.phi[groupsinplane]*np.pi/180.0)
+         #deltai += np.histogram(pixels, bins=np.linspace(0,params.npixels,params.npixels+1).astype(int), weights=cosmology.plc.Mass[groupsinplane])[0]
          deltai = deltai/deltai.mean() - 1.0
          kappai = (1.0+zl) * ( ( 1.0 - cosmology.lcdm.comoving_distance(zl)/cosmology.lcdm.comoving_distance(params.zsource) ) *\
                                  cosmology.lcdm.comoving_distance(zl) * ( cosmology.lcdm.comoving_distance(z2) - cosmology.lcdm.comoving_distance(z1) ) ).to_value() * deltai
@@ -136,13 +165,11 @@ if __name__ == "__main__":
 
       comm.Barrier()
 
-   if rank:
+   if rank == 0:
 
-       exit(0)
+      hp.mollview(kappa)
+      plt.show()
 
-   hp.mollview(kappa)
-   plt.show()
-
-   cl = hp.anafast(kappa, lmax=512)
-   ell = np.arange(len(cl))
-   np.savetxt("Maps/Cls_kappa_z{}.txt".format(params.zsource), np.transpose([ell, cl, ell * (ell+1) * cl]))
+      cl = hp.anafast(kappa, lmax=512)
+      ell = np.arange(len(cl))
+      np.savetxt("Maps/Cls_kappa_z{}.txt".format(params.zsource), np.transpose([ell, cl, ell * (ell+1) * cl]))

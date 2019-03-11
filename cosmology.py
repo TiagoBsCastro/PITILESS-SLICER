@@ -7,7 +7,7 @@ from astropy.units import Mpc
 
 ################# Cosmological Model ##################
 lcdm  = FlatLambdaCDM(H0=params.h0, Om0=params.omega0)
-cspeed = c.to('km/s').to_value()
+cspeed = c.to('km/s').value
 
 zinterp = np.linspace(0, params.zsource + 0.1, 1000)
 ainterp = 1.0/(1.0+zinterp)
