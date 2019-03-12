@@ -1,7 +1,7 @@
 import params
 import numpy as np
 import cosmology as cosmo
-import Snapshot as S
+import Snapshot3 as S
 from randomization import randomizePositions, randomizeVelocities
 
 ############# Timeless Snapshot ###############

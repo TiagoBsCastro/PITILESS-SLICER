@@ -38,7 +38,7 @@ def checkIfBoolExists (bool,file):
        if matchedstring == None:
 
            print("Boolean option", bool, "not found")
-           raise ParameterNotFound
+           return False
 
        else:
 
@@ -53,7 +53,7 @@ def checkIfBoolExists (bool,file):
 
             return True
 
-        elif re.search(r'\s*\%|\s*\#',sanitycheck.group(1)) != None:
+        elif re.search(r'\s*\%|\s*\#|\s*',sanitycheck.group(1)) != None:
 
             return True
 

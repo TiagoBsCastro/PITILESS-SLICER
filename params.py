@@ -18,9 +18,9 @@ norder = 4
 
 fovindeg     = 0
 fovinradians = fovindeg * np.pi/180.0
-npixels      = 12*2**14
-zsource      = 1.0
-nlensperbox  = 4
+npixels      = 12*2**16
+zsource      = 0.30
+nlensperbox  = 10
 
 #################### Pinocchio Parameters #####################
 #    Reads the parameters from Pinocchio's parameters file    #
@@ -76,6 +76,10 @@ if os.path.isfile(paramfilename):
           print("!!                       WARNING                            !!")
           print("!!Pinocchio was run without specifying the PLC center and axis.\nUsing the ones set in params.py!!")
           print("!!                       WARNING                            !!")
+
+      if checkIfBoolExists("CatalogInAscii", paramfile):
+
+          raise RuntimeError("!! Catalogs were generated in ASCII format !!")
 
       if plcstartingz < zsource:
 
