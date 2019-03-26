@@ -1,5 +1,6 @@
 from libc.math cimport sin, cos, asin, acos, atan2, pi, sqrt, fabs
 cimport cython
+cdef int _WRAP_POSITIONS = False
 
 cdef void func(float *q, float *v1, float *v2, float *v31, float *v32, float *d
                  , float *d2, float *d31, float *d32, float *dplc, float a, int norder, float *f, float *df) nogil:
@@ -40,7 +41,7 @@ cdef void func(float *q, float *v1, float *v2, float *v31, float *v32, float *d
     f[0]  = fp - fplc*fplc;
     df[0] = dfp - 2*( fplc*dfplc )
 
-cpdef void getCartesianCoordinates (float [:,:] qPos, float [:,:] V1, float [:,:] V2, float [:,:] V31, float [:,:] V32, float [:] a, float[:,:] coord,
+cpdef void getCartesianCoordinates (float [:,:] qPos, float[:] replication, float [:,:] V1, float [:,:] V2, float [:,:] V31, float [:,:] V32, float [:] a, float[:,:] coord,
                         int npart, float [:] D, float [:] D2, float [:] D31, float [:] D32, int norder) nogil:
 
     cdef Py_ssize_t i,j,k;
@@ -63,7 +64,18 @@ cpdef void getCartesianCoordinates (float [:,:] qPos, float [:,:] V1, float [:,:
                         fpij += (V1[i,j]*D[k] + V2[i,j]*D2[k] + V31[i,j]*D31[k] + V32[i,j]*D32[k])*ak
                         ak   *= a[i]
 
-                    x[j] = fpij;
+                    if _WRAP_POSITIONS:
+
+                        if fpij > 0.5:
+                            x[j] = fpij - 1.0 + replication[j]
+                        elif fpij < -0.5:
+                            x[j] = 1.0 - fpij + replication[j]
+                        else:
+                            x[j] = fpij + replication[j]
+
+                    else:
+
+                        x[j] = fpij + replication[j]
 
                 coord[i,0] = x[0]
                 coord[i,1] = x[1]
@@ -75,7 +87,7 @@ cpdef void getCartesianCoordinates (float [:,:] qPos, float [:,:] V1, float [:,:
                coord[i,1] = -1.0;
                coord[i,2] = -1.0;
 
-cpdef void getSkyCoordinates (float [:,:] qPos, float [:,:] V1, float [:,:] V2, float [:,:] V31, float [:,:] V32, float [:] a, float[:,:] coord,
+cpdef void getSkyCoordinates (float [:,:] qPos, float[:] replication, float [:,:] V1, float [:,:] V2, float [:,:] V31, float [:,:] V32, float [:] a, float[:,:] coord,
                                        int npart, float [:] D, float [:] D2, float [:] D31, float [:] D32, int norder) nogil:
 
     cdef Py_ssize_t i,j,k;
@@ -98,11 +110,26 @@ cpdef void getSkyCoordinates (float [:,:] qPos, float [:,:] V1, float [:,:] V2, 
                         fpij += (V1[i,j]*D[k] + V2[i,j]*D2[k] + V31[i,j]*D31[k] + V32[i,j]*D32[k])*ak
                         ak   *= a[i]
 
-                    x[j] = fpij;
+                    if _WRAP_POSITIONS:
+
+                        if fpij > 0.5:
+                            x[j] = fpij - 1.0 + replication[j]
+                        elif fpij < -0.5:
+                            x[j] = 1.0 - fpij + replication[j]
+                        else:
+                            x[j] = fpij + replication[j]
+
+                    else:
+
+                        x[j] = fpij + replication[j]
 
                 coord[i,0] = sqrt(x[0]*x[0]+x[1]*x[1]+x[2]*x[2])
                 coord[i,1] = -acos(x[2]/coord[i,0]) + pi/2.0;
                 coord[i,2] = atan2(x[1],x[0]);
+
+                if coord[i,2] < 0:
+
+                  coord[i,2] += 2*pi
 
             else:
 

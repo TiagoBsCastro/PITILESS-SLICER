@@ -8,10 +8,6 @@ def wrapPositions (xx):
 
    return xx
 
-def wrapPositionsPart (xx):
-
-    return np.abs(1.0 - np.abs( xx )) if ( (xx < 0.0) | (xx > 1.0) ) else xx
-
 def randomizePositions (center, face, sgn, pos):
 
    '''Randomize the positions acording to the SLICER
@@ -50,7 +46,7 @@ def randomizePositions (center, face, sgn, pos):
    xx -= center[0]; yy -= center[1]; zz -= center[2];
    xx = wrapPositions(xx); yy = wrapPositions(yy); zz = wrapPositions(zz);
 
-   return np.transpose([xx - 0.5, yy - 0.5, zz])
+   return np.transpose([xx - 0.5, yy - 0.5, zz - 0.5])
 
 def randomizeVelocities (face, sgn, vel):
 

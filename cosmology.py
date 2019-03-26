@@ -18,8 +18,8 @@ Dinterp = lcdm.comoving_distance(zinterp).value
 lensthickness = params.boxsize/params.nlensperbox
 nreplications = int(lcdm.comoving_distance(params.zsource).value/lensthickness + 1 )
 zl    = [0] + [ z_at_value(lcdm.comoving_distance, n*lensthickness*Mpc, zmax = 1e4) for n in range(1, nreplications) ] + [params.zsource]
-zlsup = zl[1:]
-zlinf = zl[:-1]
+zlsup = zl[1:  ]
+zlinf = zl[ :-1]
 
 ########## Pinocchio Cosmological Quantities ##########
 
@@ -28,30 +28,31 @@ zlinf = zl[:-1]
 class PolyFitOrderTooLow (Exception):
     pass
 
+class PolyFitIsNotMonotonic (Exception):
+    pass
+
 def getWisePolyFit (x, y, dtype=np.float32):
 
-    try:
+    for norder in range(1, params.norder+1):
 
-        for norder in range(1, params.norder+1):
+        if norder >= x.size:
 
-            if norder >= x.size:
+            raise PolyFitOrderTooLow("The number of points inside the range is smaller than the polynomial order")
 
-               raise PolyFitOrderTooLow
+        P = np.polyfit( x , y, norder )
+        prec = np.abs( np.mean( np.polyval( P, x[y!=0] )/y[y!=0] - 1) )
+        acc  = np.std( np.polyval(P, x[y!=0])/y[y!=0] )
+        if prec < 1e-2 and acc < 1e-2:
 
-            P = np.polyfit( x , y, norder )
-            prec = np.abs( np.mean( np.polyval( P, x[y!=0] )/y[y!=0] - 1) )
-            acc  = np.std( np.polyval(P, x[y!=0])/y[y!=0] )
-            if prec < 1e-2 and acc < 1e-2:
+            p_prime = np.polyder(P,1)
+            roots   = np.roots(p_prime)
+            roots   = roots[ np.isreal(roots) ]
 
-                return np.array(([0 for i in range(params.norder - norder)] + P.tolist())[::-1], dtype=dtype)
+            if any( (roots>x.min()) & (roots<x.max()) ):
 
-        raise PolyFitOrderTooLow
+                raise PolyFitIsNotMonotonic("The Polynomial is not monotonic inside the fit range")
 
-    except:
+            return np.array(([0 for i in range(params.norder - norder)] + P.tolist())[::-1], dtype=dtype)
 
-        raise PolyFitOrderTooLow
+    raise PolyFitOrderTooLow
 
-########## Pinocchio Past Light Cone of Halos ##########
-
-plc = rp.plc(params.pinplcfile)
-plc.Mass = (plc.Mass/plc.Mass.min()*params.minhalomass).astype(int)

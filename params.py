@@ -5,35 +5,26 @@ import sys
 
 ###############################################################
 ################ Cosmological Parameters ######################
-# !!Will be overwritten if a Pinocchio params file is given!! #
 ###############################################################
 
-omega0 = 0.0
-h0     = 0.0
 norder = 4
+# to account for particles
+# that go out of the box
+beta_buffer  = 1e-3
+theta_buffer = 5e-2
 
 ################## Past Light Cone Parameters #################
-# !!Will be overwritten if a Pinocchio params file is given!! #
 ###############################################################
 
-fovindeg     = 0
-fovinradians = fovindeg * np.pi/180.0
-npixels      = 12*2**16
-zsource      = 0.30
-nlensperbox  = 10
+npixels      = 12*2**14
+zsource      = 1.0
+nlensperbox  = 5
 
 #################### Pinocchio Parameters #####################
 #    Reads the parameters from Pinocchio's parameters file    #
-#    It will overwrite the parameters set unless it fails     #
-#    reading the file                                         #
 ###############################################################
 
-paramfilename = "params"
-boxsize       = 0
-nparticles    = 0
-plcaxis       = [ 0, 0, 0]
-plccenter     = [ 0, 0, 0]
-minhalomass   = 0
+paramfilename = "params_512"
 
 ########### Under the Hood from this point Forward ############
 ###############################################################
@@ -54,27 +45,60 @@ if os.path.isfile(paramfilename):
       fovinradians = fovindeg * np.pi/180.0
       runflag      = getValueFromFile("RunFlag", paramfile, str)
       plcstartingz = getValueFromFile("StartingzForPLC", paramfile, float)
-      fovinradians = fovindeg * np.pi/180.0
       pintlessfile = "pinocchio."+runflag+".t_snapshot.out"
       pincosmofile = "pinocchio."+runflag+".cosmology.out"
       pingeofile   = "pinocchio."+runflag+".geometry.out"
       pinplcfile   = "pinocchio."+runflag+".plc.out"
 
-      if os.path.isfile(pintlessfile) and os.path.isfile(pincosmofile) and os.path.isfile(pingeofile) and os.path.isfile(pinplcfile):
-          pass
+      try:
+
+          numfiles = getValueFromFile("NumFiles", paramfile, int)
+          print("NumFiles = {}".format(numfiles))
+
+      except ParameterNotFound:
+
+          numfiles = 1
+
+      if numfiles == 1:
+
+          if os.path.isfile(pintlessfile) and os.path.isfile(pincosmofile) and os.path.isfile(pingeofile) and os.path.isfile(pinplcfile):
+              pass
+          else:
+              print("Pinocchio files not found! Check the run!")
+              raise FileNotFoundError
+
       else:
-          print("Pinocchio files not found! Check the run!")
-          raise FileNotFoundError
+
+         for snapnum in range(numfiles):
+
+            if os.path.isfile(pintlessfile+".{}".format(snapnum)) and os.path.isfile(pincosmofile) and os.path.isfile(pingeofile) and os.path.isfile(pinplcfile+".{}".format(snapnum)):
+               pass
+            else:
+               print("Pinocchio files not found! Check the run!")
+               raise FileNotFoundError
 
       if checkIfBoolExists("PLCProvideConeData", paramfile):
 
-          plcaxis     = getValueFromFile("PLCAxis", paramfile, typeArrayFromString(float))
-          plccenter   = getValueFromFile("PLCCenter", paramfile, typeArrayFromString(float))
+          plcaxis    = getValueFromFile("PLCAxis", paramfile, typeArrayFromString(float))
+          plcaxis   /= np.sqrt( (plcaxis**2).sum() )
+          plccenter  = getValueFromFile("PLCCenter", paramfile, typeArrayFromString(float))
+          plccenter /= boxsize
+          plccenter -= np.array([0.5, 0.5, 0.5])
+
+          if plcaxis[2] == 1.0:
+              plcx  = np.array([1.0, 0.0, 0.0])
+              plcy  = np.array([0.0, 1.0, 0.0])
+          else:
+              plcx  = np.cross([0.0, 0.0, 1.0], plcaxis)
+              plcx /= np.sqrt( (plcx**2).sum() )
+              plcy  = np.cross(plcaxis, plcx)
+
+          change_of_basis = np.transpose([plcx,plcy, plcaxis]).T
 
       else:
 
           print("!!                       WARNING                            !!")
-          print("!!Pinocchio was run without specifying the PLC center and axis.\nUsing the ones set in params.py!!")
+          print("!!Pinocchio was run without specifying the PLC center and axis!!\n")
           print("!!                       WARNING                            !!")
 
       if checkIfBoolExists("CatalogInAscii", paramfile):

@@ -18,7 +18,17 @@ def getValueFromFile (value,file,type):
     Search for a variable value inside the parameter string file and converts
     it to type
     '''
-    matchedstring = re.search(r'^\s*'+value+'\s+(\d+\.\d+\s+\d+\.\d+\s+\d+\.\d+|\d+\.+\s+\d+\.+\s+\d+\.|\d+\.\d+|\d+|\w+)',file,re.MULTILINE)
+    # Case 1 it is an 3d array declared like +/- X.Y[3] or +/- X. for short
+    typing1 = r'\-?\d+\.\d*\s+\-?\d+\.\d*\s+\-?\d+\.\d*|'
+    # Case 2 it is an float declared like +/- X.Y or +/- X. for short
+    typing2 = r'\-?\d+\.\d*|'
+    # Case 3 it is an integer declared like +/- X
+    typing3 = r'\-?\d+|'
+    # Case 4 it is not a Number
+    typing4 = r'\w+'
+    typings = typing1 + typing2 + typing3 + typing4
+    '(\d+\.\d+\s+\d+\.\d+\s+\d+\.\d+|\d+\.+\s+\d+\.+\s+\d+\.|\d+\.\d+|\d+|\w+'
+    matchedstring = re.search(r'^\s*'+value+'\s+('+typings+')',file,re.MULTILINE)
     if matchedstring == None:
        print("The parameter", value, "was not found")
        raise ParameterNotFound
