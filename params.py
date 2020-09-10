@@ -118,6 +118,6 @@ if os.path.isfile(paramfilename):
    except RuntimeError:
 
       '''
-      !! Not set yet, wise Ass !!
+      !! Not set yet, wise ass !!
       '''
       raise NotImplementedError
