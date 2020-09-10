@@ -121,7 +121,7 @@ for snapnum in range(params.numfiles):
               auxcut[index + 1] = True
           if index > 0:
               auxcut[index - 1] = True
-      # If there isn't any point inside the range use the neighbours points
+      # If there is no point inside the range use the neighbours points
       if auxcut.sum() == 0:
           index = ( (cosmology.a - (amax-amin)/2.0)**2 ).argmin()
           if index < auxcut.size:
@@ -161,7 +161,9 @@ for snapnum in range(params.numfiles):
                                                          D31, D32, params.norder, amin, amax)
 
 
-         # aplcslice[ 1.0/aplcslice -1  < Zaccslice ] = -1.0
+         # If the accretion redshift is hiher than the redshift crossing
+         # ignore the particle
+         aplcslice[ 1.0/aplcslice -1  < Zaccslice ] = -1.0
          builder.getSkyCoordinates(qPosslice, shift.astype(np.float32), V1slice, V2slice, V31slice, V32slice, aplcslice,\
                                                                  skycoordslice,npart//size, D, D2, D31, D32, params.norder)
 
