@@ -24,8 +24,8 @@ def getValueFromFile (value,file,type):
     typing2 = r'\-?\d+\.\d*|'
     # Case 3 it is an integer declared like +/- X
     typing3 = r'\-?\d+|'
-    # Case 4 it is not a Number
-    typing4 = r'\w+'
+    # Case 4 it is a string
+    typing4 = r'.*?\S*'
     typings = typing1 + typing2 + typing3 + typing4
     '(\d+\.\d+\s+\d+\.\d+\s+\d+\.\d+|\d+\.+\s+\d+\.+\s+\d+\.|\d+\.\d+|\d+|\w+'
     matchedstring = re.search(r'^\s*'+value+'\s+('+typings+')',file,re.MULTILINE)

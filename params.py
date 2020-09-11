@@ -1,32 +1,37 @@
-from readparams import getValueFromFile, typeArrayFromString, checkIfBoolExists
+from IO.readparams import getValueFromFile, typeArrayFromString, checkIfBoolExists
 import os
 import numpy as np
 import sys
 
 ###############################################################
-################ Cosmological Parameters ######################
+###############################################################
+#################### Cosmological Parameters ##################
 ###############################################################
 
 norder = 4
-# to account for particles
-# that go out of the box
+# to account for particles that go out of the box
 beta_buffer  = 1e-3
 theta_buffer = 5e-2
 
+###############################################################
 ################## Past Light Cone Parameters #################
 ###############################################################
 
+inTheBox     = True
 npixels      = 12*2**14
-zsource      = 1.0
+zsource      = 0.2
 nlensperbox  = 5
 
+###############################################################
 #################### Pinocchio Parameters #####################
-#    Reads the parameters from Pinocchio's parameters file    #
+#### Reads the parameters from Pinocchio's parameters file ####
 ###############################################################
 
-paramfilename = "params_512"
+paramfilename = "parameter_file"
 
+###############################################################
 ########### Under the Hood from this point Forward ############
+###############################################################
 ###############################################################
 
 if os.path.isfile(paramfilename):
@@ -44,11 +49,14 @@ if os.path.isfile(paramfilename):
       fovindeg     = getValueFromFile("PLCAperture", paramfile, float)
       fovinradians = fovindeg * np.pi/180.0
       runflag      = getValueFromFile("RunFlag", paramfile, str)
+      outputlist   = getValueFromFile("OutputList", paramfile, str)
+      redshifts    = np.loadtxt(outputlist)
       plcstartingz = getValueFromFile("StartingzForPLC", paramfile, float)
       pintlessfile = "pinocchio."+runflag+".t_snapshot.out"
       pincosmofile = "pinocchio."+runflag+".cosmology.out"
       pingeofile   = "pinocchio."+runflag+".geometry.out"
       pinplcfile   = "pinocchio."+runflag+".plc.out"
+      pincatfile   = "pinocchio.{0:5.4f}."+runflag+".catalog.out"
 
       try:
 
@@ -61,21 +69,27 @@ if os.path.isfile(paramfilename):
 
       if numfiles == 1:
 
-          if os.path.isfile(pintlessfile) and os.path.isfile(pincosmofile) and os.path.isfile(pingeofile) and os.path.isfile(pinplcfile):
-              pass
-          else:
-              print("Pinocchio files not found! Check the run!")
-              raise FileNotFoundError
+          for z in redshifts:
+
+              if os.path.isfile(pintlessfile) and os.path.isfile(pincosmofile) and os.path.isfile(pingeofile) and os.path.isfile(pinplcfile) and os.path.isfile(pincatfile.format(z)):
+                  pass
+              else:
+                  print("Pinocchio files not found! Check the run!")
+                  raise FileNotFoundError
 
       else:
 
-         for snapnum in range(numfiles):
+          for z in redshifts:
 
-            if os.path.isfile(pintlessfile+".{}".format(snapnum)) and os.path.isfile(pincosmofile) and os.path.isfile(pingeofile) and os.path.isfile(pinplcfile+".{}".format(snapnum)):
-               pass
-            else:
-               print("Pinocchio files not found! Check the run!")
-               raise FileNotFoundError
+              for snapnum in range(numfiles):
+
+                  if os.path.isfile(pintlessfile+".{}".format(snapnum)) and os.path.isfile(pincosmofile) and os.path.isfile(pingeofile) and os.path.isfile(pinplcfile+".{1:d}".format(snapnum))and os.path.isfile( (pincatfile+".{}").format(z, snapnum)):
+                      pass
+                  else:
+                      print("Pinocchio files not found! Check the run!")
+                      raise FileNotFoundError
+
+      del z
 
       if checkIfBoolExists("PLCProvideConeData", paramfile):
 

@@ -1,8 +1,8 @@
 import params
 import numpy as np
 import cosmology as cosmo
-import Snapshot3 as S
-from randomization import randomizePositions, randomizeVelocities
+from IO import Snapshot3 as S
+from IO.randomization import randomizePositions, randomizeVelocities, wrapPositions
 import contextlib
 import sys
 
@@ -16,7 +16,29 @@ def nostdout():
     yield
     sys.stdout = save_stdout
 
-############# Timeless Snapshot ###############
+def snapPosPart(q, v1, v2, v31, v32, z, zcentered=True):
+    """
+    Returns the particles Position at z
+    """
+    thisa   = 1.0 / (1.0 + z)
+    thisD   = np.interp(thisa, cosmo.a, cosmo.D)
+    thisD2  = np.interp(thisa, cosmo.a, cosmo.D2)
+    thisD31 = np.interp(thisa, cosmo.a, cosmo.D31)
+    thisD32 = np.interp(thisa, cosmo.a, cosmo.D32)
+
+    xx, yy, zz = q + Cell * (thisD * v1 + thisD2 * v2 + thisD31 * v31 + thisD32 * v32)
+
+    if zcentered:
+        xx = (wrapPositionsPart(xx / Lbox + 0.5) - 0.5) * Lbox
+        yy = (wrapPositionsPart(yy / Lbox + 0.5) - 0.5) * Lbox
+        zz = wrapPositionsPart(zz / Lbox) * Lbox
+    else:
+        xx = (wrapPositionsPart(xx / Lbox + 0.5) - 0.5) * Lbox
+        yy = (wrapPositionsPart(yy / Lbox + 0.5) - 0.5) * Lbox
+        zz = (wrapPositionsPart(zz / Lbox + 0.5) - 0.5) * Lbox
+    return (xx, yy, zz)
+
+########################## Timeless Snapshot ############################
 
 class Timeless_Snapshot:
 
@@ -32,20 +54,21 @@ class Timeless_Snapshot:
            self.V32   = snap.read_block('V3_2', onlythissnap=True)
            self.Zacc  = snap.read_block('ZACC', onlythissnap=True)
 
-        self.Npart      = self.ID.size
-        NG         = np.int(np.float(params.nparticles)**(1./3.)+0.5)
-        Lbox       = snap.Header.boxsize
-        Cell       = Lbox/float(NG)
+        self.Npart = self.ID.size
+        self.NG    = np.int(np.float(params.nparticles)**(1./3.)+0.5)
+        self.Lbox  = snap.Header.boxsize
+        self.Cell  = Lbox/float(NG)
 
         face = 1
         sgn  = [1, 1, 1]
         # Recentering the box
-        self.qPos = np.array([ (self.ID-1)%NG,((self.ID-1)//NG)%NG,((self.ID-1)//NG**2)%NG ]).transpose() * Cell + Cell/2.
-        self.qPos = randomizePositions(params.plccenter, face, sgn, self.qPos/Lbox)
-        self.V1   = Cell*randomizeVelocities(face, sgn, self.V1)/Lbox
-        self.V2   = Cell*randomizeVelocities(face, sgn, self.V2)/Lbox
-        self.V31  = Cell*randomizeVelocities(face, sgn, self.V31)/Lbox
-        self.V32  = Cell*randomizeVelocities(face, sgn, self.V32)/Lbox
+        self.qPos = np.array([ (self.ID-1)%self.NG,((self.ID-1)//self.NG)%self.NG,\
+                              ((self.ID-1)//self.NG**2)%self.NG ]).transpose() * self.Cell + self.Cell/2.
+        self.qPos = randomizePositions(params.plccenter, face, sgn, self.qPos/self.Lbox)
+        self.V1   = Cell*randomizeVelocities(face, sgn, self.V1)/self.Lbox
+        self.V2   = Cell*randomizeVelocities(face, sgn, self.V2)/self.Lbox
+        self.V31  = Cell*randomizeVelocities(face, sgn, self.V31)/self.Lbox
+        self.V32  = Cell*randomizeVelocities(face, sgn, self.V32)/self.Lbox
         # Changing the Basis to PLC basis
         self.qPos = self.qPos.dot(params.change_of_basis)
         self.V1   = self.V1.dot(params.change_of_basis)
@@ -62,4 +85,33 @@ class Timeless_Snapshot:
             self.V31  = self.V31.astype(np.float32).reshape((3,self.Npart))
             self.V32  = self.V32.astype(np.float32).reshape((3,self.Npart))
 
-###############################################
+    def snapPos(z, zcentered=True, filter=None):
+    """
+    Returns the particles Position at z
+    """
+
+    if filter is None:
+        filter = np.ones(Npart).astype(bool)
+
+    thisa   = 1.0 / (1.0 + z)
+    thisD   = np.interp(thisa, cosmo.a, cosmo.D)
+    thisD2  = np.interp(thisa, cosmo.a, cosmo.D2)
+    thisD31 = np.interp(thisa, cosmo.a, cosmo.D31)
+    thisD32 = np.interp(thisa, cosmo.a, cosmo.D32)
+
+    xx, yy, zz = np.transpose(self.qPos[filter] + self.Cell * \
+            (thisD * self.V1[filter] + thisD2 * self.V2[filter] + \
+            thisD31 * self.V31[filter] + thisD32 * self.V32[filter]))
+
+    if zcentered:
+        xx = (wrapPositions(xx / self.Lbox + 0.5) - 0.5) * self.Lbox
+        yy = (wrapPositions(yy / self.Lbox + 0.5) - 0.5) * self.Lbox
+        zz = wrapPositions(zz / self.Lbox) * self.Lbox
+    else:
+        xx = (wrapPositions(xx / self.Lbox + 0.5) - 0.5) * self.Lbox
+        yy = (wrapPositions(yy / self.Lbox + 0.5) - 0.5) * self.Lbox
+        zz = (wrapPositions(zz / self.Lbox + 0.5) - 0.5) * self.Lbox
+
+    return (xx, yy, zz)
+
+#########################################################################

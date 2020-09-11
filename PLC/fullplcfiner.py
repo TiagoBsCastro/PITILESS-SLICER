@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import healpy as hp
-import  builder
+import builder
 import cosmology
 import params
 from mpi4py import MPI
@@ -21,7 +21,7 @@ size = comm.Get_size()
 
 # Check if the simplistic work balance will do
 if params.nparticles%size:
-    
+
     print("The data cannot be scattered on {} processes!".format(size))
     comm.Abort()
 
@@ -109,7 +109,7 @@ for snapnum in range(params.numfiles):
       else:
           amax  = 1.0/(1.0+cosmology.z_at_value(cosmology.lcdm.comoving_distance, dlinf*(1-params.beta_buffer)*cosmology.Mpc))
 
-      # Fitting the cosmological functions inside the range 
+      # Fitting the cosmological functions inside the range
       # Select points inside the range
       auxcut  = (cosmology.a >= amin) & (cosmology.a <= amax)
       if not rank:
@@ -139,7 +139,7 @@ for snapnum in range(params.numfiles):
       DPLC    = cosmology.getWisePolyFit(cosmology.ainterp[auxcut], cosmology.Dinterp[auxcut]/params.boxsize)
 
       # Check which replications are compressed by the lens
-      replicationsinside = geometry[ (geometry['nearestpoint'] < dlsup*(1+params.beta_buffer)) & 
+      replicationsinside = geometry[ (geometry['nearestpoint'] < dlsup*(1+params.beta_buffer)) &
                                       (geometry['farthestpoint'] >= dlinf*(1-params.beta_buffer)) ]
 
       if not rank:
@@ -204,7 +204,7 @@ for snapnum in range(params.numfiles):
 if not rank:
 
    if params.fovindeg < 180.0:
-   
+
        pixels = np.linspace(0,params.npixels,params.npixels+1).astype(int)
        mask   = hp.pix2ang( hp.pixelfunc.npix2nside(params.npixels), pixels)[:,0]
        mask   = mask > params.fovinradians
@@ -265,4 +265,3 @@ if not rank:
    cl = hp.anafast(kappa, lmax=512)
    ell = np.arange(len(cl))
    np.savetxt("Maps/Cls_kappa_z{}.txt".format(params.zsource), np.transpose([ell, cl, ell * (ell+1) * cl]))
-

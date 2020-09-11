@@ -1,5 +1,5 @@
 import params
-import ReadPinocchio as rp
+from IO import ReadPinocchio as rp
 import numpy as np
 from astropy.constants import c
 from astropy.cosmology import FlatLambdaCDM, z_at_value
@@ -55,4 +55,3 @@ def getWisePolyFit (x, y, dtype=np.float32):
             return np.array(([0 for i in range(params.norder - norder)] + P.tolist())[::-1], dtype=dtype)
 
     raise PolyFitOrderTooLow
-
