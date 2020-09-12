@@ -70,7 +70,7 @@ class Init:
     """
 
     To initialize a snapshot object:
-    
+
       snap = Snapshot.Init([run name],[snapshot number],[basedir]="",ToWrite=False, override=False)
 
     run name: base filename for the snapshot
@@ -110,7 +110,7 @@ class Init:
                 print("ERROR: file %s exists, cannot write the snapshot"%self.filename)
                 print("If this is what you want, initialize the snapshot with override=True")
 
-                return None            
+                return None
 
             self.swap=1
             self.format=2
@@ -228,7 +228,7 @@ class Init:
         Map building is subject to a number of consistency checks,
         use a high verbose value to have complete information
 
-        IF THE MAP OF BLOCKS CANNOT BE CONSTRUCTED AT FIRST ATTEMPT, 
+        IF THE MAP OF BLOCKS CANNOT BE CONSTRUCTED AT FIRST ATTEMPT,
         PLEASE PROVIDE AN INFOfile
 
         1) produce a file with this format:
@@ -268,7 +268,7 @@ class Init:
           snap.map_content()
 
         """
-        
+
         if not hasattr(self,"Map"):
             self.map();
         Blocks.content(self.Map)
@@ -278,7 +278,7 @@ class Init:
         """
 
         Reads a block from a snapshot and returns its values in an array.
-        
+
         usage: myBlock=snap.read_block([block name], AllMasses=[False(def),True], parttype=PT, verbose=0)
 
           block name: a string with the block name (no need to add extra spaces)
@@ -290,7 +290,7 @@ class Init:
         and consistent map before reading the blocks. In case, provide an INFOfile
         (see documentation of Snapshot.map).
 
-        If the optional AllMasses flag is set to True, it will add to the block 'MASS' 
+        If the optional AllMasses flag is set to True, it will add to the block 'MASS'
         the masses for particles with mass given in the massarray
 
         """
@@ -300,7 +300,7 @@ class Init:
 
         if onlythissnap:
             self.read_header()
-            self.Header.filenum = 1  
+            self.Header.filenum = np.int32(1)
 
         if not hasattr(self,'Map'):
             self.map()
@@ -325,7 +325,7 @@ class Init:
                 BB2=np.array([],dtype=self.Map[place].dt)
                 skip=0
                 for i in range(6):
-                
+
                     if self.Header.massarr[i]>0.0:
                         add=np.ones(self.Header.nall[i],dtype=self.Map[place].dt)*self.Header.massarr[i].astype(self.Map[place].dt)
                         BB2=np.concatenate((BB2,add))
@@ -377,7 +377,7 @@ class Init:
 
         # header block name
         np.array([8],dtype=np.int32).tofile(f)
-        f.write('HEAD')
+        f.write(b'HEAD')
         np.array([264,8],dtype=np.int32).tofile(f)
 
         # header
@@ -432,7 +432,7 @@ class Init:
         if (blockname=="INFO"):
             print("INFO block should be read with write_map()")
             return None
-    
+
         f=open(self.filename,'ab')
 
         Nbytes = Npart * mytype.itemsize
@@ -473,32 +473,35 @@ class Init:
         if verbose:
             print("I will write %d lines in the INFO block"%Nblocks)
             print("Nbytes: %d"%Nbytes)
-    
+
         f=open(self.filename,'ab')
 
         # block name
         np.array([8],dtype=np.int32).tofile(f)
-        f.write('INFO')
+        f.write(b'INFO')
         np.array([Nbytes+8,8],dtype=np.int32).tofile(f)
 
         # data
         np.array([Nbytes],dtype=np.int32).tofile(f)
         for i in range(Nblocks):
-            f.write(mymap[i].name.ljust(4))
-            f.write(mymap[i].type.ljust(8))
+            f.write( mymap[i].name.ljust(4) )
+            try:
+                f.write( mymap[i].type.ljust(8) )
+            except TypeError:
+                f.write( (mymap[i].type.ljust(8)).encode() )
             np.array([mymap[i].ndim],dtype=np.int32).tofile(f)
             mymap[i].active.tofile(f)
         np.array([Nbytes],dtype=np.int32).tofile(f)
-        
+
         f.close()
 
 
 
-    def view(self, sparse=1000, center=None, scale=None, Pos=None, groups=None, 
+    def view(self, sparse=1000, center=None, scale=None, Pos=None, groups=None,
              ViewStars=True, ViewGas=True, ViewDM=True, verbose=0):
-        
+
         """
-        
+
         To have a quick 3d view of the snapshot:
 
           snap.view(sparse=1000, center=None, scale=None, Pos=None, groups=None, verbose=0)
@@ -510,7 +513,7 @@ class Init:
         groups allows to overplot a set of points, like FoF groups
         ViewStars, ViewGas and ViewDM cause those particles to be plotted and are initializes as True
 
-        This method is meant to give a quick way to visualize a snapshot and check 
+        This method is meant to give a quick way to visualize a snapshot and check
         that things are sensible, it is not a sophisticated visualization tool
 
         """
@@ -600,9 +603,9 @@ class Init:
                 panel.scatter(groups[:,0]-center[0],groups[:,1]-center[1],groups[:,2]-center[2],label='groups',c='g',marker='o')
 
         if scale is not None:
-           panel.set_xlim([-scale,scale]) 
-           panel.set_ylim([-scale,scale]) 
-           panel.set_zlim([-scale,scale]) 
+           panel.set_xlim([-scale,scale])
+           panel.set_ylim([-scale,scale])
+           panel.set_zlim([-scale,scale])
 
         panel.legend()
 
@@ -654,10 +657,10 @@ class Init:
 class Header:
 
     """
-    
+
     This class is defined to deal with snapshot headers.
     With multiple files the array npart will have a length equal to 6 x filenum
-        
+
     To know the content of a header (without using a Snapshot object):
 
       myHeader=Snapshot.Header([snapshot filename],format=2,swap=0)
@@ -712,7 +715,7 @@ class Header:
             self.metals     = self.metals.byteswap()
             self.entropy    = self.entropy.byteswap()
             self.metalcool  = self.metalcool.byteswap()
-            self.stellarev  = self.stellarev.byteswap()     
+            self.stellarev  = self.stellarev.byteswap()
 
         # fixes npart in case of large number of particles
         if (np.sum(self.nallHigh)>0):
