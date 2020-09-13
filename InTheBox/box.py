@@ -1,6 +1,7 @@
 import params
 from IO import snapshot, Snapshot3
 from IO.ReadPinocchio import catalog
+from IO.randomization import wrapPositions
 import numpy as np
 import cosmology
 from copy import deepcopy
@@ -31,27 +32,32 @@ for z in params.redshifts:
     # Working on the particles inside Halos
     print("# Reading catalog: {}".format(params.pincatfile.format(z)))
     cat = catalog(params.pincatfile.format(z))
-    pos1 = np.zeros( (cat.Mass.size, 3) )
-    vel1 = np.random.randn( cat.Mass.size, 3 ) * 150.0 # Maxwell distribution of velocities with 150 km/s dispersion
 
-    rhoc = cosmology.lcdm.critical_density(z).to("M_sun/Mpc^3").value
-    rDelta = (3*cat.Mass/4/np.pi/200/rhoc)**(1.0/3)
+    if cat.Mass.size != 0:
 
-    # Getting concentration
-    print("## Computing concentrations")
-    minterp = np.geomspace(cat.Mass.min(), cat.Mass.max())
-    cinterp = concentration.concentration(minterp, '200c', z, model = 'bhattacharya13')
-    conc    = np.array([np.interp(m, minterp, cinterp) for m in cat.Mass])
+        pos1 = np.zeros( (np.sum(cat.Npart), 3) )
+        vel1 = np.random.randn( np.sum(cat.Npart), 3 ) * 150.0 # Maxwell distribution of velocities with 150 km/s dispersion
 
-    ipart = 0
-    for m, n, c, r, pos in zip(cat.Mass, cat.Npart, conc, rDelta, cat.pos):
+        rhoc = cosmology.lcdm.critical_density(z).to("M_sun/Mpc^3").value
+        rDelta = (3*cat.Mass/4/np.pi/200/rhoc)**(1.0/3)
 
-        rr     = NFW.randomr(c, n=n) * r
-        rphi   = np.random.uniform(0 ,2*np.pi, n)
-        rtheta = np.arccos(np.random.uniform(-1, 1, n))
+        # Getting concentration
+        print("## Computing concentrations")
+        minterp = np.geomspace(cat.Mass.min(), cat.Mass.max())
+        cinterp = concentration.concentration(minterp, '200c', z, model = 'bhattacharya13')
+        conc    = np.array([np.interp(m, minterp, cinterp) for m in cat.Mass])
 
-        pos1[ipart:ipart+n] = pos + \
-          np.transpose([rr*np.sin(rtheta)*np.cos(rphi), rr*np.sin(rtheta)*np.sin(rphi), rr*np.cos(rtheta)])
+        ipart = 0
+        for m, n, c, r, pos in zip(cat.Mass, cat.Npart, conc, rDelta, cat.pos):
+
+            rr     = NFW.randomr(c, n=n) * r
+            rphi   = np.random.uniform(0 ,2*np.pi, n)
+            rtheta = np.arccos(np.random.uniform(-1, 1, n))
+
+            pos1[ipart:ipart+n] = pos + \
+                np.transpose([rr*np.sin(rtheta)*np.cos(rphi), rr*np.sin(rtheta)*np.sin(rphi), rr*np.cos(rtheta)])
+
+            ipart += n
 
     # Getting only particles that have not yet being accreated
     print("## Displacing particles")
@@ -64,8 +70,18 @@ for z in params.redshifts:
     # Copying the Map from timeless snapshot
     zsnap = Snapshot3.Init(params.pintlessfile.replace("t_snapshot", "{0:5.4f}".format(z)), -1, ToWrite=True, override=True)
 
-    pos = np.append(pos1, pos2)
-    vel = np.append(vel1, vel2)
+    if cat.Mass.size != 0:
+
+        pos = np.vstack([pos1, pos2])
+        vel = np.vstack([vel1, vel2])
+
+    else:
+
+        pos = pos2
+        vel = vel2
+
+    # Wrapping positions
+    pos = wrapPositions(pos/params.boxsize) * params.boxsize
 
     print("## Saving snapshot: {}\n\n"\
        .format( params.pintlessfile.replace("t_snapshot", "{0:5.4f}".format(z))))
