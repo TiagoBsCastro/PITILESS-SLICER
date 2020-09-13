@@ -41,7 +41,9 @@ if os.path.isfile(paramfilename):
    try:
 
       omega0       = getValueFromFile("Omega0", paramfile, float)
+      omegabaryon  = getValueFromFile("OmegaBaryon", paramfile, float)
       h0true       = getValueFromFile("Hubble100", paramfile, float)*100
+      ns           = getValueFromFile("PrimordialIndex", paramfile, float)
       h0           = 100
       boxsize      = getValueFromFile("BoxSize", paramfile, float)
       minhalomass  = getValueFromFile("MinHaloMass", paramfile, int)
