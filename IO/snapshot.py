@@ -98,9 +98,9 @@ class Timeless_Snapshot:
         thisD31 = np.interp(thisa, cosmo.a, cosmo.D31)
         thisD32 = np.interp(thisa, cosmo.a, cosmo.D32)
 
-        xx, yy, zz = np.transpose(self.qPos[filter] + self.Cell * \
-            (thisD * self.V1[filter] + thisD2 * self.V2[filter] + \
-            thisD31 * self.V31[filter] + thisD32 * self.V32[filter])) * self.Lbox
+        xx, yy, zz = np.transpose(self.qPos[filter] + thisD * self.V1[filter] + \
+            thisD2 * self.V2[filter] + thisD31 * self.V31[filter] + \
+            thisD32 * self.V32[filter]) * self.Lbox
 
         if zcentered:
             xx = (wrapPositions(xx / self.Lbox + 0.5) - 0.5) * self.Lbox
@@ -127,9 +127,8 @@ class Timeless_Snapshot:
         thisD31 = np.interp(thisa, cosmo.a, np.gradient(cosmo.D31)/np.gradient(cosmo.a))
         thisD32 = np.interp(thisa, cosmo.a, np.gradient(cosmo.D32)/np.gradient(cosmo.a))
 
-        vx, vy, vz = np.transpose(self.Cell * \
-            (thisD * self.V1[filter] + thisD2 * self.V2[filter] + \
-            thisD31 * self.V31[filter] + thisD32 * self.V32[filter])) * self.Lbox * \
+        vx, vy, vz = np.transpose( thisD * self.V1[filter] + thisD2 * self.V2[filter] + \
+            thisD31 * self.V31[filter] + thisD32 * self.V32[filter] ) * self.Lbox * \
             thisa * cosmo.lcdm.H(z).value
 
         return (vx, vy, vz)
