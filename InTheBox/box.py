@@ -47,6 +47,7 @@ for z in params.redshifts:
         cinterp = concentration.concentration(minterp, '200c', z, model = 'bhattacharya13')
         conc    = np.array([np.interp(m, minterp, cinterp) for m in cat.Mass])
 
+        print("## Sampling Particles in Halos")
         ipart = 0
         for m, n, c, r, pos in zip(cat.Mass, cat.Npart, conc, rDelta, cat.pos):
 
@@ -59,8 +60,6 @@ for z in params.redshifts:
 
             ipart += n
 
-    # Getting only particles that have not yet being accreated
-    print("## Displacing particles")
     filter = (snap.Zacc <= z)
     pos2 = np.transpose(snap.snapPos(z, zcentered=False, filter=filter)) + params.boxsize/2
     vel2 = np.transpose(snap.snapVel(z, filter=filter))

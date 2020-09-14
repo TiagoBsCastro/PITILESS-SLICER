@@ -29,13 +29,13 @@ def snapPosPart(q, v1, v2, v31, v32, z, zcentered=True):
     xx, yy, zz = q + Cell * (thisD * v1 + thisD2 * v2 + thisD31 * v31 + thisD32 * v32)
 
     if zcentered:
-        xx = (wrapPositionsPart(xx / Lbox + 0.5) - 0.5) * Lbox
-        yy = (wrapPositionsPart(yy / Lbox + 0.5) - 0.5) * Lbox
+        xx = (wrapPositionsPart(xx / Lbox) - 0.5) * Lbox
+        yy = (wrapPositionsPart(yy / Lbox) - 0.5) * Lbox
         zz = wrapPositionsPart(zz / Lbox) * Lbox
     else:
-        xx = (wrapPositionsPart(xx / Lbox + 0.5) - 0.5) * Lbox
-        yy = (wrapPositionsPart(yy / Lbox + 0.5) - 0.5) * Lbox
-        zz = (wrapPositionsPart(zz / Lbox + 0.5) - 0.5) * Lbox
+        xx = (wrapPositionsPart(xx / Lbox) - 0.5) * Lbox
+        yy = (wrapPositionsPart(yy / Lbox) - 0.5) * Lbox
+        zz = (wrapPositionsPart(zz / Lbox) - 0.5) * Lbox
     return (xx, yy, zz)
 
 ########################## Timeless Snapshot ############################
@@ -89,27 +89,31 @@ class Timeless_Snapshot:
         Returns the particles Position at z
         """
 
-        if filter is None:
-            filter = np.ones(params.nparticles).astype(bool)
-
         thisa   = 1.0 / (1.0 + z)
         thisD   = np.interp(thisa, cosmo.a, cosmo.D)
         thisD2  = np.interp(thisa, cosmo.a, cosmo.D2)
         thisD31 = np.interp(thisa, cosmo.a, cosmo.D31)
         thisD32 = np.interp(thisa, cosmo.a, cosmo.D32)
 
-        xx, yy, zz = np.transpose(self.qPos[filter] + thisD * self.V1[filter] + \
-            thisD2 * self.V2[filter] + thisD31 * self.V31[filter] + \
-            thisD32 * self.V32[filter]) * self.Lbox
+        if filter is None:
+
+            xx, yy, zz = np.transpose(self.qPos + thisD * self.V1 + thisD2 * self.V2 + \
+                thisD31 * self.V31 + thisD32 * self.V32) * self.Lbox
+
+        else:
+
+            xx, yy, zz = np.transpose(self.qPos[filter] + thisD * self.V1[filter] + \
+                thisD2 * self.V2[filter] + thisD31 * self.V31[filter] + \
+                thisD32 * self.V32[filter]) * self.Lbox
 
         if zcentered:
-            xx = (wrapPositions(xx / self.Lbox + 0.5) - 0.5) * self.Lbox
-            yy = (wrapPositions(yy / self.Lbox + 0.5) - 0.5) * self.Lbox
+            xx = (wrapPositions(xx / self.Lbox) - 0.5) * self.Lbox
+            yy = (wrapPositions(yy / self.Lbox) - 0.5) * self.Lbox
             zz = wrapPositions(zz / self.Lbox) * self.Lbox
         else:
-            xx = (wrapPositions(xx / self.Lbox + 0.5) - 0.5) * self.Lbox
-            yy = (wrapPositions(yy / self.Lbox + 0.5) - 0.5) * self.Lbox
-            zz = (wrapPositions(zz / self.Lbox + 0.5) - 0.5) * self.Lbox
+            xx = (wrapPositions(xx / self.Lbox) - 0.5) * self.Lbox
+            yy = (wrapPositions(yy / self.Lbox) - 0.5) * self.Lbox
+            zz = (wrapPositions(zz / self.Lbox) - 0.5) * self.Lbox
 
         return (xx, yy, zz)
 
@@ -118,18 +122,23 @@ class Timeless_Snapshot:
         Returns the particles Velocities at z
         """
 
-        if filter is None:
-            filter = np.ones(params.nparticles).astype(bool)
-
         thisa   = 1.0 / (1.0 + z)
         thisD   = np.interp(thisa, cosmo.a, np.gradient(cosmo.D)/np.gradient(cosmo.a))
         thisD2  = np.interp(thisa, cosmo.a, np.gradient(cosmo.D2)/np.gradient(cosmo.a))
         thisD31 = np.interp(thisa, cosmo.a, np.gradient(cosmo.D31)/np.gradient(cosmo.a))
         thisD32 = np.interp(thisa, cosmo.a, np.gradient(cosmo.D32)/np.gradient(cosmo.a))
 
-        vx, vy, vz = np.transpose( thisD * self.V1[filter] + thisD2 * self.V2[filter] + \
-            thisD31 * self.V31[filter] + thisD32 * self.V32[filter] ) * self.Lbox * \
-            thisa * cosmo.lcdm.H(z).value
+        if filter is None:
+
+            vx, vy, vz = np.transpose( thisD * self.V1 + thisD2 * self.V2 + \
+                thisD31 * self.V31 + thisD32 * self.V32 ) * self.Lbox * \
+                thisa * cosmo.lcdm.H(z).value
+
+        else:
+
+            vx, vy, vz = np.transpose( thisD * self.V1[filter] + thisD2 * self.V2[filter] + \
+                thisD31 * self.V31[filter] + thisD32 * self.V32[filter] ) * self.Lbox * \
+                thisa * cosmo.lcdm.H(z).value
 
         return (vx, vy, vz)
 
