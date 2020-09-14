@@ -1,5 +1,6 @@
 import params
 from IO import snapshot, Snapshot3
+from IO.Snapshot3.Blocks import line
 from IO.ReadPinocchio import catalog
 from IO.randomization import wrapPositions
 import numpy as np
@@ -8,16 +9,48 @@ from copy import deepcopy
 from colossus.cosmology import cosmology as colossus
 from colossus.halo import concentration
 from NFW import NFW
+from mpi4py import MPI
+import sys
+
+############################### Setting MPI4PY #############################
+
+comm = MPI.COMM_WORLD
+rank = comm.Get_rank()
+size = comm.Get_size()
+
+if size != params.numfiles:
+
+    print("PITILESS currently only works with number of threads ({}) equal to number of Pinocchio files ({}).".format(size, params.numfiles))
+    comm.Abort()
+
+else:
+
+    if size != 1:
+
+        params.pintlessfile += ".{}".format(rank)
+        params.pincatfile += ".{}".format(rank)
+        params.pinplcfile += ".{}".format(rank)
+
+comm.Barrier()
+
+if not rank:
+
+    print("STDOUT will be redirected to box_log_{rank}.txt.")
+    print("STDERR will be redirected to box_err_{rank}.txt.")
+    print("Check the files for more information on the run.")
+
+sys.stdout = open('box_log_{}.txt'.format(rank), 'w')
+sys.stderr = open('box_err_{}.txt'.format(rank), 'w')
 
 #######################  Reading Timeless Snapshot  #######################
 snap = snapshot.Timeless_Snapshot(params.pintlessfile)
 
 #getting the ordered Map:
 dummy_head = deepcopy(snap.snap.Header)
-dummy_map  = deepcopy(snap.snap.Map)
-omap       = np.argsort([x.offset[0] for x in dummy_map])[:5]
-dummy_map  = [dummy_map[i] for i in omap]
-dummy_map[-2].name = b"POS "; dummy_map[-1].name = b"VEL "
+#dummy_map  = deepcopy(snap.snap.Map)
+#omap       = np.argsort([x.offset[0] for x in dummy_map])[:5]
+#dummy_map  = [dummy_map[i] for i in omap]
+#dummy_map[-2].name = b"POS "; dummy_map[-1].name = b"VEL "
 ###########################################################################
 
 # Setting cosmology for concentrations
@@ -80,14 +113,63 @@ for z in params.redshifts:
         vel = vel2
 
     # Wrapping positions
-    pos = wrapPositions(pos/params.boxsize) * params.boxsize
+    pos   = wrapPositions(pos/params.boxsize) * params.boxsize
+    npart = pos.shape[0]
+
+    # Getting the total number of particle for each thread
+    if rank:
+
+        totpart = None
+        print("## Total number of Particles: {}".format(npart))
+        comm.send(npart, dest=0)
+
+    else:
+
+        totpart = npart
+        print("## Total number of Particles: {}".format(totpart))
+
+        for i in range(1, size):
+
+            npart = comm.recv(source=i)
+            print("Received: {} from {}".format(npart, i))
+            totpart += npart
+
+    comm.barrier()
+    totpart = comm.bcast(totpart, root=0)
+
+    if rank:
+        exclusions = (totpart - params.nparticles)//size
+    else:
+        exclusions = (totpart - params.nparticles)//size + (totpart - params.nparticles)%size
+    print("## Total number of particles:    {}".format(totpart))
+    print("## Expected number of particles: {}".format(params.nparticles))
+
+    if exclusions:
+
+        print("## I will randomly exclude:      {}".format(exclusions))
+        idxs = np.random.randint(0, pos.shape[0], exclusions)
+        pos = np.delete(pos, idxs, 0)
+        vel = np.delete(vel, idxs, 0)
+
+    ids = np.empty( pos.shape[0], dtype=np.int32 )
 
     print("## Saving snapshot: {}\n\n"\
        .format( params.pintlessfile.replace("t_snapshot", "{0:5.4f}".format(z))))
+
+    map = []
+    map += [line(b'HEAD', 256, 'FLOAT   ', 1, np.array([1,0,0,0,0,0], dtype=np.int32), 20, 3)]
+    map += [line(b'INFO', 200, 'FLOAT   ', 1, np.array([1,0,0,0,0,0], dtype=np.int32), 300, 3)]
+    map += [line(b'ID  ', ids.size, 'LONG    ', 1, np.array([0,1,0,0,0,0], dtype=np.int32), 524, 1)]
+    map += [line(b'POS ', pos.size, 'FLOATN  ', 3, np.array([0,1,0,0,0,0], dtype=np.int32), ids.size + 548, 1)]
+    map += [line(b'VEL ', vel.size, 'FLOATN  ', 3, np.array([0,1,0,0,0,0], dtype=np.int32), pos.size +ids.size + 572, 1)]
+
     zsnap.write_header(dummy_head)
-    zsnap.write_info_block(dummy_map)
-    zsnap.write_block(b"ID  ", np.dtype('uint32'), params.nparticles, snap.ID.astype(np.uint32))
-    zsnap.write_block(b"POS ", np.dtype('float32'), 3*params.nparticles, pos.astype(np.float32))
-    zsnap.write_block(b"VEL ", np.dtype('float32'), 3*params.nparticles, vel.astype(np.float32))
+    zsnap.write_info_block(map)
+    print("## ID  size: {}".format(ids.size))
+    print("## POS size: {}".format(pos.size))
+    print("## VEL size: {}".format(vel.size))
+    zsnap.write_block(b"ID  ", np.dtype('uint32'),  ids.size, ids.astype(np.uint32))
+    zsnap.write_block(b"POS ", np.dtype('float32'), pos.size, pos.astype(np.float32))
+    zsnap.write_block(b"VEL ", np.dtype('float32'), vel.size, vel.astype(np.float32))
 
 print("All Done!")

@@ -73,7 +73,9 @@ if os.path.isfile(paramfilename):
 
           for z in redshifts:
 
-              if os.path.isfile(pintlessfile) and os.path.isfile(pincosmofile) and os.path.isfile(pingeofile) and os.path.isfile(pinplcfile) and os.path.isfile(pincatfile.format(z)):
+              if os.path.isfile(pintlessfile) and os.path.isfile(pincosmofile) \
+                 and os.path.isfile(pingeofile) and os.path.isfile(pinplcfile) \
+                 and os.path.isfile(pincatfile.format(z)):
                   pass
               else:
                   print("Pinocchio files not found! Check the run!")
@@ -85,7 +87,10 @@ if os.path.isfile(paramfilename):
 
               for snapnum in range(numfiles):
 
-                  if os.path.isfile(pintlessfile+".{}".format(snapnum)) and os.path.isfile(pincosmofile) and os.path.isfile(pingeofile) and os.path.isfile(pinplcfile+".{1:d}".format(snapnum))and os.path.isfile( (pincatfile+".{}").format(z, snapnum)):
+                  if os.path.isfile(pintlessfile+".{}".format(snapnum)) \
+                     and os.path.isfile(pincosmofile) and os.path.isfile(pingeofile) \
+                     and os.path.isfile( pinplcfile+".{0:d}".format(snapnum)) \
+                     and os.path.isfile( (pincatfile+".{1:d}").format(z, snapnum)):
                       pass
                   else:
                       print("Pinocchio files not found! Check the run!")
