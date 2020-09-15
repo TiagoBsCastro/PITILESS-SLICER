@@ -76,10 +76,10 @@ for z in params.redshifts:
 
         print("## Sampling Particles in Halos")
         ipart = 0
-        for m, n, c, r, pos in zip(cat.Mass, cat.Npart, conc, rDelta, cat.pos):
+        for n, c, r, pos in zip(cat.Npart, conc, rDelta, cat.pos):
 
             rr     = NFW.randomr(c, n=n) * r
-            rphi   = np.random.uniform(0 ,2*np.pi, n)
+            rphi   = np.random.uniform(0, 2*np.pi, n)
             rtheta = np.arccos(np.random.uniform(-1, 1, n))
 
             pos1[ipart:ipart+n] = pos + \
@@ -129,10 +129,11 @@ for z in params.redshifts:
     totpart = comm.bcast(totpart, root=0)
 
     if rank:
-        exclusions = (np.sum(totpart) - params.nparticles)//size
+        exclusions = np.sign( np.sum(totpart) - params.nparticles ) * \
+                     ( np.abs(np.sum(totpart) - params.nparticles)//size )
     else:
-        exclusions = (np.sum(totpart) - params.nparticles)//size + \
-                     np.sign(np.sum(totpart) - params.nparticles)*((np.sum(totpart) - params.nparticles)%size)
+        exclusions = np.sign( np.sum(totpart) - params.nparticles ) * \
+                     ( np.abs(np.sum(totpart) - params.nparticles)//size + np.abs(np.sum(totpart) - params.nparticles)%size )
 
     # Boolean variable in case only the master have to readjust number of particles
     only_master = (np.sum(totpart) - params.nparticles) and not np.bool( (np.sum(totpart) - params.nparticles)//size )
