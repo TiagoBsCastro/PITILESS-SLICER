@@ -6,7 +6,7 @@ import Pk_library as PKL
 import params
 import cosmology
 
-z        = 0.0
+z        = 2.0
 a        = 1.0/(1.0+z)
 snapshot = 'pinocchio.example.{0:5.4f}.out'.format(z)
 grid     = 256

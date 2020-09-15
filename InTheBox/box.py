@@ -44,13 +44,7 @@ sys.stderr = open('box_err_{}.txt'.format(rank), 'w')
 
 #######################  Reading Timeless Snapshot  #######################
 snap = snapshot.Timeless_Snapshot(params.pintlessfile)
-
-#getting the ordered Map:
 dummy_head = deepcopy(snap.snap.Header)
-#dummy_map  = deepcopy(snap.snap.Map)
-#omap       = np.argsort([x.offset[0] for x in dummy_map])[:5]
-#dummy_map  = [dummy_map[i] for i in omap]
-#dummy_map[-2].name = b"POS "; dummy_map[-1].name = b"VEL "
 ###########################################################################
 
 # Setting cosmology for concentrations
@@ -97,8 +91,6 @@ for z in params.redshifts:
     pos2 = np.transpose(snap.snapPos(z, zcentered=False, filter=filter)) + params.boxsize/2
     vel2 = np.transpose(snap.snapVel(z, filter=filter))
 
-    dummy_head.redshift = z
-    dummy_head.time     = 1.0/(1.0+z)
     # Copying the Map from timeless snapshot
     zsnap = Snapshot3.Init(params.pintlessfile.replace("t_snapshot", "{0:5.4f}".format(z)), -1, ToWrite=True, override=True)
 
@@ -120,54 +112,92 @@ for z in params.redshifts:
     if rank:
 
         totpart = None
-        print("## Total number of Particles: {}".format(npart))
+        print("## Number of Particles in this thread: {}".format(npart))
         comm.send(npart, dest=0)
 
     else:
 
-        totpart = npart
-        print("## Total number of Particles: {}".format(totpart))
+        totpart = [npart]
+        print("## Number of Particles in this thread: {}".format(npart))
 
         for i in range(1, size):
 
             npart = comm.recv(source=i)
-            print("Received: {} from {}".format(npart, i))
-            totpart += npart
+            totpart += [npart]
 
     comm.barrier()
     totpart = comm.bcast(totpart, root=0)
 
     if rank:
-        exclusions = (totpart - params.nparticles)//size
+        exclusions = (np.sum(totpart) - params.nparticles)//size
     else:
-        exclusions = (totpart - params.nparticles)//size + (totpart - params.nparticles)%size
-    print("## Total number of particles:    {}".format(totpart))
+        exclusions = (np.sum(totpart) - params.nparticles)//size + \
+                     np.sign(np.sum(totpart) - params.nparticles)*((np.sum(totpart) - params.nparticles)%size)
+
+    # Boolean variable in case only the master have to readjust number of particles
+    only_master = (np.sum(totpart) - params.nparticles) and not np.bool( (np.sum(totpart) - params.nparticles)//size )
+    print("## Total number of particles:    {}".format( np.sum(totpart) ))
     print("## Expected number of particles: {}".format(params.nparticles))
 
     if exclusions:
 
-        print("## I will randomly exclude:      {}".format(exclusions))
-        idxs = np.random.randint(0, pos.shape[0], exclusions)
-        pos = np.delete(pos, idxs, 0)
-        vel = np.delete(vel, idxs, 0)
+        if exclusions>0:
 
-    ids = np.empty( pos.shape[0], dtype=np.int32 )
+            print("## I will randomly exclude:      {}".format(exclusions))
+            idxs = np.random.randint(0, pos.shape[0], exclusions)
+            pos = np.delete(pos, idxs, 0)
+            vel = np.delete(vel, idxs, 0)
 
-    print("## Saving snapshot: {}\n\n"\
+        else:
+
+            print("## I will randomly duplicate:      {}".format(-exclusions))
+            idxs = np.random.randint(0, pos.shape[0], -exclusions)
+            pos = np.vstack([pos, pos[idxs]])
+            vel = np.vstack([vel, vel[idxs]])
+
+        npart = pos.shape[0]
+        # Updating totpart in case all threads have to adjust the number of particles
+        if not only_master:
+
+            if rank:
+
+                totpart = None
+                print("## Number of Particles in this rank: {}".format(npart))
+                comm.send(npart, dest=0)
+
+            else:
+
+                totpart = [npart]
+                print("## Number of Particles in this rank: {}".format(npart))
+
+                for i in range(1, size):
+
+                    npart = comm.recv(source=i)
+                    totpart += [npart]
+
+        # Updating only the master in this case
+        else:
+
+            print("## Number of Particles in this rank: {}".format(npart))
+            totpart[0] = npart
+
+    comm.barrier()
+    totpart = comm.bcast(totpart, root=0)
+    # Updating structures
+    if rank:
+        ids = np.arange(np.cumsum(totpart)[rank-1], np.cumsum(totpart)[rank])
+    else:
+        ids = np.arange(0, totpart[rank])
+
+    dummy_head.redshift = z
+    dummy_head.time     = 1.0/(1.0+z)
+    dummy_head.filenum  = np.array([size], dtype=np.int32)
+    dummy_head.npart    = np.array([0, totpart[rank], 0, 0, 0, 0], dtype=np.uint32)
+
+    print("## Saving snapshot: {}\n"\
        .format( params.pintlessfile.replace("t_snapshot", "{0:5.4f}".format(z))))
 
-    map = []
-    map += [line(b'HEAD', 256, 'FLOAT   ', 1, np.array([1,0,0,0,0,0], dtype=np.int32), 20, 3)]
-    map += [line(b'INFO', 200, 'FLOAT   ', 1, np.array([1,0,0,0,0,0], dtype=np.int32), 300, 3)]
-    map += [line(b'ID  ', ids.size, 'LONG    ', 1, np.array([0,1,0,0,0,0], dtype=np.int32), 524, 1)]
-    map += [line(b'POS ', pos.size, 'FLOATN  ', 3, np.array([0,1,0,0,0,0], dtype=np.int32), ids.size + 548, 1)]
-    map += [line(b'VEL ', vel.size, 'FLOATN  ', 3, np.array([0,1,0,0,0,0], dtype=np.int32), pos.size +ids.size + 572, 1)]
-
     zsnap.write_header(dummy_head)
-    zsnap.write_info_block(map)
-    print("## ID  size: {}".format(ids.size))
-    print("## POS size: {}".format(pos.size))
-    print("## VEL size: {}".format(vel.size))
     zsnap.write_block(b"ID  ", np.dtype('uint32'),  ids.size, ids.astype(np.uint32))
     zsnap.write_block(b"POS ", np.dtype('float32'), pos.size, pos.astype(np.float32))
     zsnap.write_block(b"VEL ", np.dtype('float32'), vel.size, vel.astype(np.float32))
