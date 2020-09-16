@@ -12,7 +12,7 @@ cdef void func(float *q, float *v1, float *v2, float *v31, float *v32, float *d
     cdef float dfp = 0.0;
     cdef float fplc = 0.0;
     cdef float dfplc = 0.0;
-    cdef Py_ssize_t i,j
+    cdef Py_ssize_t i,j;
 
     for j in range(norder+1):
 
