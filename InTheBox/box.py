@@ -2,7 +2,7 @@ import sys
 from copy import deepcopy
 from colossus.cosmology import cosmology as colossus
 from colossus.halo import concentration
-from NFW import NFW
+import NFW.NFWx as NFW
 from mpi4py import MPI
 import time
 import datetime
@@ -84,8 +84,9 @@ for z in params.redshifts:
 
     if cat.Mass.size != 0:
 
-        pos1 = np.zeros( (np.sum(cat.Npart), 3) )
-        vel1 = np.random.randn( np.sum(cat.Npart), 3 ) * 150.0 # Maxwell distribution of velocities with 150 km/s dispersion
+        pos1 = np.repeat(cat.pos, cat.Npart, axis=0)
+        vel1 = np.repeat(cat.vel, cat.Npart, axis=0)\
+              + np.random.randn( np.sum(cat.Npart), 3 ) * 150.0 # Maxwell distribution of velocities with 150 km/s dispersion
 
         rhoc = cosmology.lcdm.critical_density(z).to("M_sun/Mpc^3").value
         rDelta = (3*cat.Mass/4/np.pi/200/rhoc)**(1.0/3)
@@ -95,28 +96,24 @@ for z in params.redshifts:
         print("[{}] ## Computing concentrations".format(datetime.datetime.now()))
         minterp = np.geomspace(cat.Mass.min(), cat.Mass.max())
         cinterp = concentration.concentration(minterp, '200c', z, model = 'bhattacharya13')
-        conc    = np.array([np.interp(m, minterp, cinterp) for m in cat.Mass])
+        conc    = np.array([np.interp(m, minterp, cinterp) for m in cat.Mass], dtype=np.float32)
         print("[{}] ## Time spent: {} s".format(datetime.datetime.now(), time.time() - start))
 
         start = time.time()
         print("[{}] ## Sampling Particles in Halos".format(datetime.datetime.now()))
-        ipart = 0
-        for n, c, r, pos in zip(cat.Npart, conc, rDelta, cat.pos):
-
-            rr     = NFW.randomr(c, n=n) * r
-            rphi   = np.random.uniform(0, 2*np.pi, n)
-            rtheta = np.arccos(np.random.uniform(-1, 1, n))
-
-            pos1[ipart:ipart+n] = pos + \
-                np.transpose([rr*np.sin(rtheta)*np.cos(rphi), rr*np.sin(rtheta)*np.sin(rphi), rr*np.cos(rtheta)])
-
-            ipart += n
-
+        r = np.empty( np.sum(cat.Npart), dtype=np.float32 )
+        theta = np.empty( np.sum(cat.Npart), dtype=np.float32 )
+        phi = np.empty( np.sum(cat.Npart), dtype=np.float32 )
+        NFW.random_nfw(cat.Npart.astype(np.int32), conc, r, theta, phi)
+        pos1 = pos1 + np.transpose([r*np.sin(theta)*np.cos(phi), r*np.sin(theta)*np.sin(phi), r*np.cos(theta)])
         print("[{}] ## Time spent: {} s".format(datetime.datetime.now(), time.time() - start))
 
+    start = time.time()
+    print("[{}] ## Displacing Particles outside Halos".format(datetime.datetime.now()))
     filter = (snap.Zacc <= z)
     pos2 = np.transpose(snap.snapPos(z, zcentered=False, filter=filter)) + params.boxsize/2
     vel2 = np.transpose(snap.snapVel(z, filter=filter))
+    print("[{}] ## Time spent: {} s".format(datetime.datetime.now(), time.time() - start))
 
     if cat.Mass.size != 0:
 

@@ -4,6 +4,8 @@ from scipy.interpolate import interp2d
 
 # Maximum radii that particles will be considered in R_Delta units
 RMAX = 1.0
+# NUmber of points for the interpolator
+NMAX = 500
 
 def nfwFac (c, r):
     '''
@@ -44,11 +46,16 @@ def dnormalizedNFWMass (cx, r):
     return  cx**2 * (1.0 + cx) *r / (1.0 + cx*r) ** 2 / (-cx + (1.0+cx) * np.log(1.0+cx))
 
 # Calculating the CDF (_u) for several values of radii _r and concentration _c
-_r     = np.linspace(0.0,  RMAX, 100)
-_c     = np.linspace(2.0, 50.0, 100)
-_u     = np.linspace(0.0,  1.0, 100)
+_r     = np.linspace(0.0,  RMAX, NMAX)
+_c     = np.linspace(2.0, 30.0, NMAX)
+_u     = np.linspace(0.0,  1.0, NMAX)
 _inv_u = np.array( [ [ optimize.fsolve( lambda r: normalizedNFWMass (c, r) * normalizedNFWMass (c, 1.0)/normalizedNFWMass (c, RMAX) - u, u)[0] for c in _c ] for u in _u]  )
 _inv_u = interp2d(_c, _u, _inv_u)
+
+_logu      = np.log( np.geomspace(1e-3,  1.0, NMAX) )
+_inv_log_u = np.array( [ [ optimize.fsolve( lambda r: normalizedNFWMass (c, r) * normalizedNFWMass (c, 1.0)/normalizedNFWMass (c, RMAX) - np.exp(u), np.exp(u))[0] for c in _c ] for u in _logu]  )
+_inv_log_u = interp2d(_c, _logu, _inv_log_u)
+
 def getr (cx, u):
     '''
     Returns the  radius r=R/Rx where the enclosed mass fraction is u with respect to
