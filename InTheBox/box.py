@@ -111,10 +111,9 @@ for z in params.redshifts:
 
     start = time.time()
     print("[{}] ## Displacing Particles outside Halos".format(datetime.datetime.now()))
-    for xxx in range(10):
-        filter = (snap.Zacc <= z)
-        pos2 = snap.snapPos(z, zcentered=False, filter=filter) + params.boxsize/2
-        vel2 = snap.snapVel(z, filter=filter)
+    filter = (snap.Zacc <= z)
+    pos2 = snap.snapPos(z, zcentered=False, filter=filter) + params.boxsize/2
+    vel2 = snap.snapVel(z, filter=filter)
     print("[{}] ## Time spent: {} s".format(datetime.datetime.now(), time.time() - start))
 
     if cat.Mass.size != 0:
