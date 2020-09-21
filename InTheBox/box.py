@@ -104,29 +104,30 @@ for z in params.redshifts:
         r = np.empty( np.sum(cat.Npart), dtype=np.float32 )
         theta = np.empty( np.sum(cat.Npart), dtype=np.float32 )
         phi = np.empty( np.sum(cat.Npart), dtype=np.float32 )
-        NFW.random_nfw(cat.Npart.astype(np.int32), conc, r, theta, phi)
+        NFW.random_nfw(cat.Npart.astype(np.int32), conc, rDelta.astype(np.float32), r, theta, phi)
         pos1 = pos1 + np.transpose([r*np.sin(theta)*np.cos(phi), r*np.sin(theta)*np.sin(phi), r*np.cos(theta)])
         print("[{}] ## Time spent: {} s".format(datetime.datetime.now(), time.time() - start))
 
     start = time.time()
     print("[{}] ## Displacing Particles outside Halos".format(datetime.datetime.now()))
     filter = (snap.Zacc <= z)
-    pos2 = np.transpose(snap.snapPos(z, zcentered=False, filter=filter)) + params.boxsize/2
-    vel2 = np.transpose(snap.snapVel(z, filter=filter))
+    pos2 = snap.snapPos(z, zcentered=False, filter=filter) + params.boxsize/2
+    vel2 = snap.snapVel(z, filter=filter)
     print("[{}] ## Time spent: {} s".format(datetime.datetime.now(), time.time() - start))
 
     if cat.Mass.size != 0:
 
-        pos = np.vstack([pos1, pos2])
+        pos = np.vstack([pos1, pos2])/params.boxsize
         vel = np.vstack([vel1, vel2])
 
     else:
 
-        pos = pos2
+        pos = pos2/params.boxsize
         vel = vel2
 
     # Wrapping positions
-    pos   = wrapPositions(pos/params.boxsize) * params.boxsize
+    wrapPositions(pos, pos.shape[0])
+    pos *= params.boxsize
     npart = pos.shape[0]
 
     start = time.time()

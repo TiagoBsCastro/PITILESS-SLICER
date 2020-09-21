@@ -14,9 +14,9 @@ cdef extern from "NFW.h":
     float inv_u [];
     float inv_logu [];
 
-def random_nfw (int[:] npart, float[:] conc, float[:] r, float[:] theta, float[:] phi):
+def random_nfw (int[:] npart, float[:] conc, float[:] rdelta, float[:] r, float[:] theta, float[:] phi):
 
-  _random_nfw(&npart[0], &conc[0], conc.shape[0], &r[0], &theta[0], &phi[0])
+  _random_nfw(&npart[0], &conc[0], &rdelta[0], conc.shape[0], &r[0], &theta[0], &phi[0])
 
 # Linearly interpolating on u
 cdef float getrlin(float x, float y) nogil:
@@ -58,9 +58,9 @@ cdef float bilinear_interpolation (float x, float y, float *gridx, float *gridy,
 
   return 1.0/(x2-x1)/(y2-y1)*( v11*(x2-x)*(y2-y) + v21*(x-x1)*(y2-y) + v12*(x2-x)*(y-y1) + v22*(x-x1)*(y-y1) )
 
-cdef void _random_nfw (int *npart, float *conc, int dim, float *r, float *theta, float *phi) nogil:
+cdef void _random_nfw (int *npart, float *conc, float *rdelta, int dim, float *r, float *theta, float *phi) nogil:
 
-  cdef int i,j;
+  cdef Py_ssize_t i,j;
   cdef int nhalos=0;
   cdef float u;
 
@@ -69,7 +69,7 @@ cdef void _random_nfw (int *npart, float *conc, int dim, float *r, float *theta,
     for j in range(npart[i]):
 
       u = (<float>rand())/(RAND_MAX);
-      r[nhalos]     = getrlin(conc[i], u);
+      r[nhalos]     = getrlin(conc[i], u) * rdelta[i];
 
       theta[nhalos] = acos( 2.0*((<float>rand())/(RAND_MAX)-0.5) )
       phi[nhalos]   = 2.0 * pi *(<float>rand())/(RAND_MAX)

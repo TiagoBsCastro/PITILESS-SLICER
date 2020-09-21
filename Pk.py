@@ -6,7 +6,8 @@ import Pk_library as PKL
 import params
 import cosmology
 
-for folder in ['serial_test/', 'parallel_test/']:
+#for folder in ['serial_test/', 'parallel_test/']:
+for folder in ['./']:
 
     z        = 0.0
     a        = 1.0/(1.0+z)
