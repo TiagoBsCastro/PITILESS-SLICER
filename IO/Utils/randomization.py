@@ -1,5 +1,4 @@
 import numpy as np
-from numba import jit
 from IO.Utils.wrapPositions import wrapPositions
 
 def randomizePositions (center, face, sgn, pos):
