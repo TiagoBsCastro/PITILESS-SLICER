@@ -1,4 +1,4 @@
-from IO.readparams import getValueFromFile, typeArrayFromString, checkIfBoolExists
+from IO.Params.readparams import getValueFromFile, typeArrayFromString, checkIfBoolExists
 import os
 import numpy as np
 import sys

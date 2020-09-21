@@ -23,10 +23,11 @@ def nostdout():
 with nostdout():
     import params
     import cosmology
-    from IO import snapshot, Snapshot3
-    from IO.Snapshot3.Blocks import line
-    from IO.ReadPinocchio import catalog
-    from IO.randomization import wrapPositions
+    from IO import Gadget
+    from IO.Gadget.Blocks import line
+    from IO.Pinocchio.ReadPinocchio import catalog
+    import IO.Pinocchio.TimelessSnapshot as snapshot
+    from IO.Utils.wrapPositions import wrapPositions
 
 ############################### Setting MPI4PY #############################
 
@@ -61,7 +62,7 @@ sys.stderr = open('box_err_{}.txt'.format(rank), 'w')
 #######################  Reading Timeless Snapshot  #######################
 start = time.time()
 print("[{}] # Reading Timeless Snapshot:".format(datetime.datetime.now()))
-snap = snapshot.Timeless_Snapshot(params.pintlessfile)
+snap = snapshot.timeless_snapshot(params.pintlessfile)
 dummy_head = deepcopy(snap.snap.Header)
 print("[{}] # Time spent: {} s".format(datetime.datetime.now(), time.time() - start))
 ###########################################################################
@@ -110,9 +111,10 @@ for z in params.redshifts:
 
     start = time.time()
     print("[{}] ## Displacing Particles outside Halos".format(datetime.datetime.now()))
-    filter = (snap.Zacc <= z)
-    pos2 = snap.snapPos(z, zcentered=False, filter=filter) + params.boxsize/2
-    vel2 = snap.snapVel(z, filter=filter)
+    for xxx in range(10):
+        filter = (snap.Zacc <= z)
+        pos2 = snap.snapPos(z, zcentered=False, filter=filter) + params.boxsize/2
+        vel2 = snap.snapVel(z, filter=filter)
     print("[{}] ## Time spent: {} s".format(datetime.datetime.now(), time.time() - start))
 
     if cat.Mass.size != 0:
@@ -126,7 +128,7 @@ for z in params.redshifts:
         vel = vel2
 
     # Wrapping positions
-    wrapPositions(pos, pos.shape[0])
+    wrapPositions(pos.astype(np.float32))
     pos *= params.boxsize
     npart = pos.shape[0]
 
@@ -224,10 +226,12 @@ for z in params.redshifts:
     print("[{}] ## Saving snapshot: {}\n"\
        .format( datetime.datetime.now(), params.pintlessfile.replace("t_snapshot", "{0:5.4f}".format(z))))
 
-    zsnap = Snapshot3.Init(params.pintlessfile.replace("t_snapshot", "{0:5.4f}".format(z)), -1, ToWrite=True, override=True)
+    zsnap = Gadget.Init(params.pintlessfile.replace("t_snapshot", "{0:5.4f}".format(z)), -1, ToWrite=True, override=True)
     zsnap.write_header(dummy_head)
     zsnap.write_block(b"ID  ", np.dtype('uint32'),  ids.size, ids.astype(np.uint32))
     zsnap.write_block(b"POS ", np.dtype('float32'), pos.size, pos.astype(np.float32))
     zsnap.write_block(b"VEL ", np.dtype('float32'), vel.size, vel.astype(np.float32))
+
+    del pos, pos1, pos2, vel1, vel2, vel, ids, zsnap
 
 print("[{}] All Done!".format(datetime.datetime.now()))

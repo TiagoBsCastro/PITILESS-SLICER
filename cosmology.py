@@ -1,5 +1,5 @@
 import params
-from IO import ReadPinocchio as rp
+from IO.Pinocchio import ReadPinocchio as rp
 import numpy as np
 from astropy.constants import c
 from astropy.cosmology import FlatLambdaCDM, z_at_value
