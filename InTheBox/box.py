@@ -9,6 +9,7 @@ import datetime
 import numpy as np
 import contextlib
 import resource
+import params
 
 # Defining not stdout enviroment
 class DummyFile(object):
