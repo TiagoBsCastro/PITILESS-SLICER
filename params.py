@@ -28,6 +28,7 @@ nlensperbox  = 5
 ###############################################################
 
 paramfilename = "parameter_file"
+directoryname = "/beegfs/tcastro/examples/"
 
 ###############################################################
 ########### Under the Hood from this point Forward ############
@@ -54,11 +55,11 @@ if os.path.isfile(paramfilename):
       outputlist   = getValueFromFile("OutputList", paramfile, str)
       redshifts    = np.loadtxt(outputlist)
       plcstartingz = getValueFromFile("StartingzForPLC", paramfile, float)
-      pintlessfile = "pinocchio."+runflag+".t_snapshot.out"
-      pincosmofile = "pinocchio."+runflag+".cosmology.out"
-      pingeofile   = "pinocchio."+runflag+".geometry.out"
-      pinplcfile   = "pinocchio."+runflag+".plc.out"
-      pincatfile   = "pinocchio.{0:5.4f}."+runflag+".catalog.out"
+      pintlessfile = directoryname+"pinocchio."+runflag+".t_snapshot.out"
+      pincosmofile = directoryname+"pinocchio."+runflag+".cosmology.out"
+      pingeofile   = directoryname+"pinocchio."+runflag+".geometry.out"
+      pinplcfile   = directoryname+"pinocchio."+runflag+".plc.out"
+      pincatfile   = directoryname+"pinocchio.{0:5.4f}."+runflag+".catalog.out"
 
       try:
 
