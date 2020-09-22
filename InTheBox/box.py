@@ -8,6 +8,7 @@ import time
 import datetime
 import numpy as np
 import contextlib
+import resource
 
 # Defining not stdout enviroment
 class DummyFile(object):
@@ -137,13 +138,13 @@ for z in params.redshifts:
     if rank:
 
         totpart = None
-        print("[{}] ## Number of Particles in this thread: {}".format(datetime.datetime.now(), npart))
+        print("[{}] ## Number of Particles in this rank: {}".format(datetime.datetime.now(), npart))
         comm.send(npart, dest=0)
 
     else:
 
         totpart = [npart]
-        print("[{}] ## Number of Particles in this thread: {}".format(datetime.datetime.now(), npart))
+        print("[{}] ## Number of Particles in this rank: {}".format(datetime.datetime.now(), npart))
 
         for i in range(1, size):
 
@@ -222,7 +223,7 @@ for z in params.redshifts:
     dummy_head.filenum  = np.array([size], dtype=np.int32)
     dummy_head.npart    = np.array([0, totpart[rank], 0, 0, 0, 0], dtype=np.uint32)
 
-    print("[{}] ## Saving snapshot: {}\n"\
+    print("[{}] ## Saving snapshot: {}"\
        .format( datetime.datetime.now(), params.pintlessfile.replace("t_snapshot", "{0:5.4f}".format(z))))
 
     zsnap = Gadget.Init(params.pintlessfile.replace("t_snapshot", "{0:5.4f}".format(z)), -1, ToWrite=True, override=True)
@@ -232,5 +233,8 @@ for z in params.redshifts:
     zsnap.write_block(b"VEL ", np.dtype('float32'), vel.size, vel.astype(np.float32))
 
     del pos, pos1, pos2, vel1, vel2, vel, ids, zsnap
+
+    print("[{}] ## High water mark Memory Consumption: {} Gb\n".format(datetime.datetime.now(), \
+                                     resource.getrusage(resource.RUSAGE_SELF).ru_maxrss/1024**2))
 
 print("[{}] All Done!".format(datetime.datetime.now()))
