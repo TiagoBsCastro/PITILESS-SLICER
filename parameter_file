@@ -2,10 +2,10 @@
 
 # run properties
 RunFlag                example                                    % name of the run
-OutputList             /u/tcastro/PITILESS-SLICER/outputs         % name of file with required output redshifts
-BoxSize                500                                        % physical size of the box in Mpc
+OutputList             /home/tcastro/PITILESS-SLICER/outputs      % name of file with required output redshifts
+BoxSize                250                                        % physical size of the box in Mpc
 BoxInH100                                                         % specify that the box is in Mpc/h
-GridSize               1024                                       % number of grid points per side
+GridSize               256                                        % number of grid points per side
 RandomSeed             486604                                     % random seed for initial conditions
 
 # cosmology
@@ -27,13 +27,13 @@ WDM_PartMass_in_kev    0.0          % WDM cut following Bode, Ostriker & Turok (
 
 # control of memory requirements
 BoundaryLayerFactor    1.0          % width of the boundary layer for fragmentation
-MaxMem                 5000         % max available memory to an MPI task in Mbyte
+MaxMem                 4500         % max available memory to an MPI task in Mbyte
 MaxMemPerParticle      600          % max available memory in bytes per particle
 
 # output
 #CatalogInAscii                     % catalogs are written in ascii and not in binary format
 OutputInH100                        % units are in H=100 instead of the true H value
-NumFiles               64           % number of files in which each catalog is written
+NumFiles               1            % number of files in which each catalog is written
 MinHaloMass            10           % smallest halo that is given in output
 AnalyticMassFunction   9            % form of analytic mass function given in the .mf.out files
 

@@ -28,7 +28,7 @@ nlensperbox  = 5
 ###############################################################
 
 paramfilename = "parameter_file"
-directoryname = "/beegfs/tcastro/examples/"
+directoryname = "./"
 
 ###############################################################
 ########### Under the Hood from this point Forward ############

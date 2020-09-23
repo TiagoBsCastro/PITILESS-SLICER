@@ -5,7 +5,7 @@ from scipy.interpolate import interp2d
 # Maximum radii that particles will be considered in R_Delta units
 RMAX = 1.0
 # NUmber of points for the interpolator
-NMAX = 500
+NMAX = 50
 
 def nfwFac (c, r):
     '''

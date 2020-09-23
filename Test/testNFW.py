@@ -1,7 +1,7 @@
 import params
 import cosmology
-from IO import snapshot
-from IO.ReadPinocchio import catalog
+from IO.Pinocchio.ReadPinocchio import catalog
+from IO.Pinocchio.TimelessSnapshot import timeless_snapshot
 import readsnap as rs
 import numpy as np
 import matplotlib.pyplot as plt
@@ -24,20 +24,20 @@ rDelta = (3*cat.Mass/4/np.pi/200/rhoc)**(1.0/3)
 pos = rs.read_block("pinocchio.example.0.0000.out", "POS ")
 mp  = rs.snapshot_header("pinocchio.example.0.0000.out").massarr[1] * 1e10
 
-# Getting the Index of the most passive object in catalog
-idx = np.argmax(cat.Mass)
+# Getting the Index of the i-th passive object in catalog
+idx = np.argsort(cat.Mass)[-100]
 
 # Getting the first and last icdx of the particles inside the most massive halo
 idxp1 = np.sum(cat.Npart[:idx])
 idxp2 = idxp1 + cat.Npart[idx]
 
-plt.scatter(pos[idxp1:idxp2][:,0], pos[idxp1:idxp2][:,1])
+plt.scatter(pos[idxp1:idxp2][:,0], pos[idxp1:idxp2][:,1], s=0.1)
 plt.show()
 
-plt.scatter(pos[idxp1:idxp2][:,0], pos[idxp1:idxp2][:,2])
+plt.scatter(pos[idxp1:idxp2][:,0], pos[idxp1:idxp2][:,2], s=0.1)
 plt.show()
 
-plt.scatter(pos[idxp1:idxp2][:,1], pos[idxp1:idxp2][:,2])
+plt.scatter(pos[idxp1:idxp2][:,1], pos[idxp1:idxp2][:,2], s=0.1)
 plt.show()
 
 # Getting Radius
