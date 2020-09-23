@@ -34,4 +34,7 @@ for folder in ['./']:
 
 growth = np.interp(a, cosmology.a, cosmology.D)
 plt.loglog(cosmology.k, cosmology.Pk * growth**2 * cosmology.k**3)
+
+Pk = np.loadtxt("Pk-HM.0.0.txt")
+plt.loglog(Pk[:,0] * params.h0true/100, Pk[:,1] * Pk[:,0]**3)
 plt.show()

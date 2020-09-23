@@ -97,9 +97,24 @@ for z in params.redshifts:
         # Getting concentration
         start = time.time()
         print("[{}] ## Computing concentrations".format(datetime.datetime.now()))
-        minterp = np.geomspace(cat.Mass.min(), cat.Mass.max())
-        cinterp = concentration.concentration(minterp, '200c', z, model = 'bhattacharya13')
-        conc    = np.array([np.interp(m, minterp, cinterp) for m in cat.Mass], dtype=np.float32)
+        if params.cmmodel == 'colossus':
+
+            minterp = np.geomspace(cat.Mass.min(), cat.Mass.max())
+            cinterp = concentration.concentration(minterp, '200c', z, model = 'bhattacharya13')
+            conc    = np.array([np.interp(m, minterp, cinterp) for m in cat.Mass], dtype=np.float32)
+
+        elif params.cmmodel == 'bhattacharya':
+
+            # Bahattacharya fits for nu and c(M) - Table-2/200c-Full
+            Da   = np.interp(1.0/(1.0+z), cosmo.a, cosmo.Da)
+            nu   = 1.0/Da * (1.12*(cat.Mass/5.0/1e13)**0.3 + 0.53 )
+            conc = Da**0.54 * 5.9 * nu**(-0.35)
+
+        else:
+
+            print("C(M)-model {} not known!".format(params.cmmodel))
+            comm.Abort()
+
         print("[{}] ## Time spent: {} s".format(datetime.datetime.now(), time.time() - start))
 
         start = time.time()
