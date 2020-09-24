@@ -1,13 +1,13 @@
 import re
 
-for i,j in zip([0, 2], [1, 3]):
+for i,j in zip([1], [2]):
 
     print("\n####################################\n")
 
-    for n in range(64):
+    for n in range(4):
 
-        log = open("box_log_{}.txt".format(n)).read()
-        particles = re.findall(r".*Number.*\:\s+(\d*)", log)
+        log = open("../box_log_{}.txt".format(n)).read()
+        particles = re.findall(r".Number of Particles in this rank\:\s+(\d*)", log)
 
         if n == 0:
 

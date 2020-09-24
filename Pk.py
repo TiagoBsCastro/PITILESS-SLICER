@@ -12,7 +12,7 @@ for folder in ['./']:
     z        = 0.0
     a        = 1.0/(1.0+z)
     snapshot = folder + 'pinocchio.example.{0:5.4f}.out'.format(z)
-    grid     = 256
+    grid     = 512
     ptypes   = [1]
     MAS      = 'CIC'
     do_RSD   = False

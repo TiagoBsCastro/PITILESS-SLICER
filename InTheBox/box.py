@@ -187,7 +187,7 @@ for z in params.redshifts:
         if exclusions>0:
 
             print("[{}] ## I will randomly exclude:      {}".format(datetime.datetime.now(), exclusions))
-            idxs = np.random.randint(0, pos.shape[0], exclusions)
+            idxs = np.random.permutation(pos.shape[0])[ : exclusions]
             pos = np.delete(pos, idxs, 0)
             vel = np.delete(vel, idxs, 0)
 
