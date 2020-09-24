@@ -9,7 +9,23 @@ import datetime
 import numpy as np
 import contextlib
 import resource
-import params
+
+############################### Setting MPI4PY #############################
+
+comm = MPI.COMM_WORLD
+rank = comm.Get_rank()
+size = comm.Get_size()
+
+############################### Setting STDOUT #############################
+
+if not rank:
+
+    print("[{}] STDOUT will be redirected to box_log_{{rank}}.txt.".format(datetime.datetime.now()))
+    print("[{}] STDERR will be redirected to box_err_{{rank}}.txt.".format(datetime.datetime.now()))
+    print("[{}] Check the files for more information on the run.".format(datetime.datetime.now()))
+
+sys.stdout = open('box_log_{}.txt'.format(rank), 'w')
+sys.stderr = open('box_err_{}.txt'.format(rank), 'w')
 
 # Defining not stdout enviroment
 class DummyFile(object):
@@ -22,20 +38,13 @@ def nostdout():
     yield
     sys.stdout = save_stdout
 
-with nostdout():
-    import params
-    import cosmology
-    from IO import Gadget
-    from IO.Gadget.Blocks import line
-    from IO.Pinocchio.ReadPinocchio import catalog
-    import IO.Pinocchio.TimelessSnapshot as snapshot
-    from IO.Utils.wrapPositions import wrapPositions
-
-############################### Setting MPI4PY #############################
-
-comm = MPI.COMM_WORLD
-rank = comm.Get_rank()
-size = comm.Get_size()
+import params
+import cosmology
+from IO import Gadget
+from IO.Gadget.Blocks import line
+from IO.Pinocchio.ReadPinocchio import catalog
+import IO.Pinocchio.TimelessSnapshot as snapshot
+from IO.Utils.wrapPositions import wrapPositions
 
 if size != params.numfiles:
 
@@ -51,15 +60,6 @@ else:
         params.pinplcfile += ".{}".format(rank)
 
 comm.Barrier()
-
-if not rank:
-
-    print("[{}] STDOUT will be redirected to box_log_{{rank}}.txt.".format(datetime.datetime.now()))
-    print("[{}] STDERR will be redirected to box_err_{{rank}}.txt.".format(datetime.datetime.now()))
-    print("[{}] Check the files for more information on the run.".format(datetime.datetime.now()))
-
-sys.stdout = open('box_log_{}.txt'.format(rank), 'w')
-sys.stderr = open('box_err_{}.txt'.format(rank), 'w')
 
 #######################  Reading Timeless Snapshot  #######################
 start = time.time()
@@ -106,9 +106,9 @@ for z in params.redshifts:
         elif params.cmmodel == 'bhattacharya':
 
             # Bahattacharya fits for nu and c(M) - Table-2/200c-Full
-            Da   = np.interp(1.0/(1.0+z), cosmo.a, cosmo.Da)
+            Da   = np.interp(1.0/(1.0+z), cosmology.a, cosmology.D)
             nu   = 1.0/Da * (1.12*(cat.Mass/5.0/1e13)**0.3 + 0.53 )
-            conc = Da**0.54 * 5.9 * nu**(-0.35)
+            conc = (Da**0.54 * 5.9 * nu**(-0.35)).astype(np.float32)
 
         else:
 
