@@ -33,8 +33,8 @@ nlensperbox  = 5
 #### Reads the parameters from Pinocchio's parameters file ####
 ###############################################################
 
-paramfilename = "parameter_file"
-directoryname = "./"
+paramfilename = "/beegfs/Alice/parameter_file"
+directoryname = "/beegfs/Alice/"
 
 ###############################################################
 ########### Under the Hood from this point Forward ############
@@ -149,3 +149,7 @@ if os.path.isfile(paramfilename):
       !! Not set yet, wise ass !!
       '''
       raise NotImplementedError
+
+else:
+
+    raise FileNotFoundError("Parameter files not found!")
