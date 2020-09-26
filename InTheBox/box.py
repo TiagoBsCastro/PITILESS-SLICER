@@ -59,7 +59,7 @@ else:
         params.pincatfile += ".{}".format(rank)
         params.pinplcfile += ".{}".format(rank)
 
-comm.Barrier()
+comm.barrier()
 
 #######################  Reading Timeless Snapshot  #######################
 start = time.time()
@@ -181,6 +181,10 @@ for z in params.redshifts:
     only_master = (np.sum(totpart) - params.nparticles) and not np.bool( (np.sum(totpart) - params.nparticles)//size )
     print("[{}] ## Total number of particles:    {}".format(datetime.datetime.now(), np.sum(totpart) ))
     print("[{}] ## Expected number of particles: {}".format(datetime.datetime.now(), params.nparticles))
+
+    if not exclusions and only_master and rank:
+
+        print("[{}] ## Only the master will readjust the number of particles.".format(datetime.datetime.now()))
 
     if exclusions:
 
