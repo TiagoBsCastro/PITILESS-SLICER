@@ -144,8 +144,9 @@ for z in params.redshifts:
         vel = vel2
 
     # Wrapping positions
-    wrapPositions(pos.astype(np.float32))
-    pos *= params.boxsize
+    pos = pos.astype(np.float32)
+    wrapPositions(pos)
+    pos  *= params.boxsize
     npart = pos.shape[0]
 
     start = time.time()
