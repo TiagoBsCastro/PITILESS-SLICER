@@ -33,8 +33,9 @@ nlensperbox  = 5
 #### Reads the parameters from Pinocchio's parameters file ####
 ###############################################################
 
-paramfilename = "/beegfs/Alice/parameter_file"
-directoryname = "/beegfs/Alice/"
+paramfilename = "./parameter_file"
+directoryname = "./"
+rotatebox     = True
 
 ###############################################################
 ########### Under the Hood from this point Forward ############
