@@ -138,10 +138,14 @@ for z in params.redshifts:
         pos = np.vstack([pos1, pos2])/params.boxsize
         vel = np.vstack([vel1, vel2])
 
+        del pos1, pos2, vel1, vel2
+
     else:
 
         pos = pos2/params.boxsize
         vel = vel2
+
+        del pos2, vel2
 
     # Wrapping positions
     pos = pos.astype(np.float32)
@@ -253,7 +257,7 @@ for z in params.redshifts:
     zsnap.write_block(b"POS ", np.dtype('float32'), pos.size, pos.astype(np.float32))
     zsnap.write_block(b"VEL ", np.dtype('float32'), vel.size, vel.astype(np.float32))
 
-    del pos, pos1, pos2, vel1, vel2, vel, ids, zsnap
+    del pos, vel, ids, zsnap
 
     print("[{}] ## High water mark Memory Consumption: {} Gb\n".format(datetime.datetime.now(), \
                                      resource.getrusage(resource.RUSAGE_SELF).ru_maxrss/1024**2))

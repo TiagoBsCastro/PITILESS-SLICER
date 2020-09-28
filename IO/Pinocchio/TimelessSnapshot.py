@@ -66,8 +66,7 @@ class timeless_snapshot:
         # Recentering the box
         if params.rotatebox:
 
-            self.qPos = np.array([ ((self.ID-1)//self.NG)%self.NG, ((self.ID-1)//self.NG**2)%self.NG,\
-                                   (self.ID-1)%self.NG ]).transpose() * self.Cell + self.Cell/2.
+            self.qPos = np.array([ ((self.ID-1)//self.NG**2)%self.NG , ((self.ID-1)//self.NG)%self.NG, (self.ID-1)%self.NG]).transpose() * self.Cell + self.Cell/2.
 
         else:
 
