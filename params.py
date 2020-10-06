@@ -67,6 +67,13 @@ if os.path.isfile(paramfilename):
       pingeofile   = directoryname+"pinocchio."+runflag+".geometry.out"
       pinplcfile   = directoryname+"pinocchio."+runflag+".plc.out"
       pincatfile   = directoryname+"pinocchio.{0:5.4f}."+runflag+".catalog.out"
+      pinmffile    = directoryname+"pinocchio.{0:5.4f}."+runflag+".mf.out"
+
+      analyticmf = getValueFromFile("AnalyticMassFunction", paramfile, int)
+
+      if analyticmf != 9:
+
+          raise RuntimeError("Pinocchio has been run with a HMF different than the Analytic Mass Function used for calibration!")
 
       try:
 
@@ -83,7 +90,7 @@ if os.path.isfile(paramfilename):
 
               if os.path.isfile(pintlessfile) and os.path.isfile(pincosmofile) \
                  and os.path.isfile(pingeofile) and os.path.isfile(pinplcfile) \
-                 and os.path.isfile(pincatfile.format(z)):
+                 and os.path.isfile(pincatfile.format(z)) and os.path.isfile(pinmffile.format(z)):
                   pass
               else:
                   print("Pinocchio files not found! Check the run!")
@@ -97,6 +104,7 @@ if os.path.isfile(paramfilename):
 
                   if os.path.isfile(pintlessfile+".{}".format(snapnum)) \
                      and os.path.isfile(pincosmofile) and os.path.isfile(pingeofile) \
+                     and os.path.isfile(pinmffile.format(z)) \
                      and os.path.isfile( pinplcfile+".{0:d}".format(snapnum)) \
                      and os.path.isfile( (pincatfile+".{1:d}").format(z, snapnum)):
                       pass

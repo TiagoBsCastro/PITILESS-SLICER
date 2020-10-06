@@ -55,8 +55,6 @@ Tiago Castro 25/02/2019
 python2 to python3
 
 """
-
-
 import numpy as np
 import os
 import sys
@@ -115,8 +113,6 @@ class plc:
             startid = stopid
             stopid += Npartial
         f.close()
-
-
 
 class catalog:
     def __init__(self,filename):
@@ -286,3 +282,29 @@ class histories:
                 startid = stopid
 
         f.close()
+
+class mf:
+
+    def __init__(self,filename):
+        if (not os.path.exists(filename)):
+            print( "file not found:", filename)
+            sys.exit()
+
+        # Pinocchio mf structure
+        # Mass function for redshift 1.000000
+        # 1) mass (Msun/h)
+        # 2) n(m) (Mpc^-3 Msun^-1 h^4)
+        # 3) upper +1-sigma limit for n(m) (Mpc^-3 Msun^-1 h^4)
+        # 4) lower -1-sigma limit for n(m) (Mpc^-3 Msun^-1 h^4)
+        # 5) number of halos in the bin
+        # 6) analytical n(m) from Watson et al. 2013
+        # 7) nu = 1.687/sigma(M)
+
+        mf = np.loadtxt(filename, unpack=True)
+
+        self.m          = mf[0]
+        self.dndm       = mf[1]
+        self.dndlnm     = self.dndm * self.m
+        self.nhalos     = mf[4]
+        self.dndm_teo   = mf[5]
+        self.dndlnm_teo = self.dndm_teo * self.m
