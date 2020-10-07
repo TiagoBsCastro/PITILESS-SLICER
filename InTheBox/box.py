@@ -1,7 +1,7 @@
 import sys
 from copy import deepcopy
-from colossus.cosmology import cosmology as colossus
-from colossus.halo import concentration
+from cosmology import colossus
+from cosmology import concentration
 import NFW.NFWx as NFW
 from mpi4py import MPI
 import time
@@ -68,12 +68,6 @@ snap = snapshot.timeless_snapshot(params.pintlessfile)
 dummy_head = deepcopy(snap.snap.Header)
 print("[{}] # Time spent: {} s".format(datetime.datetime.now(), time.time() - start))
 ###########################################################################
-
-# Setting cosmology for concentrations
-pdict = {'flat': True, 'H0': params.h0true, 'Om0': params.omega0, 'Ob0': params.omegabaryon,\
-          'sigma8': cosmology.sigma8, 'ns': params.ns}
-colossus.addCosmology('myCosmo', pdict)
-colossus.setCosmology('myCosmo')
 
 # Looping on the outputlist redshifts
 for z in params.redshifts:

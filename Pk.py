@@ -7,18 +7,18 @@ import params
 import cosmology
 
 #for folder in ['serial_test/', 'parallel_test/']:
-for folder in ['./']:
+for folder in ['../TestRuns/']:
 
     z        = 0.0
     a        = 1.0/(1.0+z)
     snapshot = folder + 'pinocchio.example.{0:5.4f}.out'.format(z)
-    grid     = 512
+    grid     = 256
     ptypes   = [1]
     MAS      = 'CIC'
     do_RSD   = False
     axis     = 0
     BoxSize  = params.boxsize
-    threads  = 1
+    threads  = 4
 
     # define the array hosting the density field
     delta = np.zeros((grid,grid,grid), dtype=np.float32)
@@ -35,6 +35,8 @@ for folder in ['./']:
 growth = np.interp(a, cosmology.a, cosmology.D)
 plt.loglog(cosmology.k, cosmology.Pk * growth**2 * cosmology.k**3)
 
-Pk = np.loadtxt("Pk-HM.0.0.txt")
+Pk = np.loadtxt("/home/tcastro/Dropbox/Trabalho/Lensing.simulations/tGL/Pk/z=0.00/14.06_arcsec/Pk.txt", skiprows=1)
 plt.loglog(Pk[:,0] * params.h0true/100, Pk[:,1] * Pk[:,0]**3)
+#Pk = np.loadtxt("/home/tcastro/Dropbox/Trabalho/Lensing.simulations/tGL/Pk/Pk.4.9017.1024.txt")
+#plt.loglog(Pk[:,0] * params.h0true/100, Pk[:,1] * Pk[:,0]**3)
 plt.show()

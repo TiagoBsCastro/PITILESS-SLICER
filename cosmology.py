@@ -4,6 +4,8 @@ import numpy as np
 from astropy.constants import c
 from astropy.cosmology import FlatLambdaCDM, z_at_value
 from astropy.units import Mpc
+from colossus.halo import profile_nfw, concentration
+from colossus.cosmology import cosmology as colossus
 
 ########################### Cosmological Model ##########################
 lcdm  = FlatLambdaCDM(H0=params.h0, Om0=params.omega0)
@@ -49,6 +51,12 @@ zlinf = zl[ :-1]
 (R, DeltaRGauss, k, Pk) = np.loadtxt(params.pincosmofile, usecols=(9, 10, 12, 13), unpack=True)
 
 sigma8 = ssq(8.0 * 100/params.h0true, k, Pk * k**3/2/np.pi**2 )**0.5
+
+# Setting cosmology for concentrations
+pdict = {'flat': True, 'H0': params.h0true, 'Om0': params.omega0, 'Ob0': params.omegabaryon,\
+          'sigma8': sigma8, 'ns': params.ns}
+colossus.addCosmology('myCosmo', pdict)
+colossus.setCosmology('myCosmo'); del pdict
 
 class PolyFitOrderTooLow (Exception):
     pass

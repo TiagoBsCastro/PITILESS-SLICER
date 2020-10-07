@@ -33,8 +33,8 @@ nlensperbox  = 5
 #### Reads the parameters from Pinocchio's parameters file ####
 ###############################################################
 
-paramfilename = "./parameter_file"
-directoryname = "./"
+paramfilename = "../TestRuns/parameter_file"
+directoryname = "../TestRuns/"
 rotatebox     = True
 
 ###############################################################
