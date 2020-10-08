@@ -64,7 +64,7 @@ def P1H (k, z, mf, model='bhattacharya13'):
 
     try:
 
-        integrand = [ dndm*W(k, m, z, model) ** 2 for m, dndm in zip(mf.m, mf.dndm_teo) ]
+        integrand = [ dndm*W(k, m, z, model) ** 2 for m, dndm in zip(mf.m, mf.dndm) ]
 
         return 1.0 / (colossus.current_cosmo.rho_m(0.0) * 1e9)**2 * trapz( np.transpose(integrand), x=mf.m, axis=1)
 
