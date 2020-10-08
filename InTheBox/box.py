@@ -85,7 +85,7 @@ for z in params.redshifts:
         vel1 = np.repeat(cat.vel, cat.Npart, axis=0)\
               + np.random.randn( np.sum(cat.Npart), 3 ) * 150.0 # Maxwell distribution of velocities with 150 km/s dispersion
 
-        rhoc = cosmology.lcdm.critical_density(z).to("M_sun/Mpc^3").value
+        rhoc = cosmology.lcdm.critical_density(0.0).to("M_sun/Mpc^3").value
         rDelta = (3*cat.Mass/4/np.pi/200/rhoc)**(1.0/3)
 
         # Getting concentration

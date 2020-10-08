@@ -33,17 +33,20 @@ def W (k, M, z, model = 'bhattacharya13'):
 
     conc  = concentration.concentration(M, '200c', z, model = model)
     p_nfw = profile_nfw.NFWProfile(M = M, c = conc, z = z, mdef = '200c')
+    # Getting the comoving parameters
+    rs    = p_nfw.par['rs']*(1+z)
+    rhos  = p_nfw.par['rhos']/(1+z)**3
 
     # Numerical Integration
     #w = lambda r: np.sinc(kinkpc*r/np.pi) * r**2 * p_nfw.rho(p_nfw.par['rhos'], r/p_nfw.par['rs'])
     #return 4.0 * np.pi * quad(w, 0, conc * p_nfw.par['rs'])[0]
 
     # Analytical Integration
-    si1, ci1 = sici( (1.0+conc)*kinkpc*p_nfw.par['rs'] )
-    si2, ci2 = sici( kinkpc*p_nfw.par['rs'] )
-    return 4.0 * np.pi * p_nfw.par['rhos'] * p_nfw.par['rs']**3 *\
-           ( np.sin( kinkpc*p_nfw.par['rs'] ) * (si1-si2) - np.sinc(conc*kinkpc*p_nfw.par['rs']/np.pi)*conc/(1.0+conc) +\
-             np.cos( kinkpc*p_nfw.par['rs'] ) * (ci1-ci2) )
+    si1, ci1 = sici( (1.0+conc)*kinkpc*rs )
+    si2, ci2 = sici( kinkpc*rs )
+    return 4.0 * np.pi * rhos * rs**3 *\
+           ( np.sin( kinkpc*rs ) * (si1-si2) - np.sinc(conc*kinkpc*rs/np.pi)*conc/(1.0+conc) +\
+             np.cos( kinkpc*rs ) * (ci1-ci2) )
 
 def P1H (k, z, mf, model='bhattacharya13'):
     '''
@@ -61,7 +64,7 @@ def P1H (k, z, mf, model='bhattacharya13'):
 
     try:
 
-        integrand = [ dndm*W(k, m, z, model) ** 2 for m, dndm in zip(mf.m, mf.dndm) ]
+        integrand = [ dndm*W(k, m, z, model) ** 2 for m, dndm in zip(mf.m, mf.dndm_teo) ]
 
         return 1.0 / (colossus.current_cosmo.rho_m(0.0) * 1e9)**2 * trapz( np.transpose(integrand), x=mf.m, axis=1)
 
