@@ -2,12 +2,14 @@ from IO.Params.readparams import getValueFromFile, typeArrayFromString, checkIfB
 import os
 import numpy as np
 import sys
+from hmf.density_field.transfer_models import EH_BAO, CAMB
 
 ###############################################################
 ###############################################################
 #################### Cosmological Parameters ##################
 ###############################################################
 
+TCMB = 2.7255 # Only used if IC Pk was given by camb
 norder = 4
 # to account for particles that go out of the box
 beta_buffer  = 1e-3
@@ -52,6 +54,7 @@ if os.path.isfile(paramfilename):
       omegabaryon  = getValueFromFile("OmegaBaryon", paramfile, float)
       h0true       = getValueFromFile("Hubble100", paramfile, float)*100
       ns           = getValueFromFile("PrimordialIndex", paramfile, float)
+      sigma8       = getValueFromFile("Sigma8", paramfile, float)
       h0           = 100
       boxsize      = getValueFromFile("BoxSize", paramfile, float)
       minhalomass  = getValueFromFile("MinHaloMass", paramfile, int)
@@ -147,6 +150,22 @@ if os.path.isfile(paramfilename):
           print("StartingzForPLC ({}) is smaller than the source redshift ({}).".format(plcstartingz, zsource))
           print("If this is exactly what you want comment this error Raising in params.py.")
           raise RuntimeError
+
+      # Computing sigma8 instead if it is 0
+      if sigma8 == 0:
+
+          transfer_model = CAMB
+
+          k, Pk = np.loadtxt(pincosmofile, usecols=[12, 13], unpack=True)
+          Dk    = Pk * k**3/(2*np.pi**2)
+          w     = lambda r: ( 3.*( np.sin(k * r) - k*r*np.cos(k * r) )/((k * r)**3.))
+
+          sigma8 = np.trapz( w(8.0*100/h0true)**2 * Dk/k, x=k)**0.5
+          del k, Pk, Dk, w
+
+      else:
+
+          transfer_model = EH_BAO
 
    except FileNotFoundError:
 
