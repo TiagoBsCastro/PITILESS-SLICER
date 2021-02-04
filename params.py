@@ -35,8 +35,8 @@ nlensperbox  = 5
 #### Reads the parameters from Pinocchio's parameters file ####
 ###############################################################
 
-paramfilename = "../TestRuns/parameter_file"
-directoryname = "../TestRuns/"
+paramfilename = "/beegfs/tcastro/TestRuns/parameter_file"
+directoryname = "/beegfs/tcastro/TestRuns/"
 rotatebox     = True
 
 ###############################################################
@@ -105,14 +105,23 @@ if os.path.isfile(paramfilename):
 
               for snapnum in range(numfiles):
 
-                  if os.path.isfile(pintlessfile+".{}".format(snapnum)) \
-                     and os.path.isfile(pincosmofile) and os.path.isfile(pingeofile) \
-                     and os.path.isfile(pinmffile.format(z)) \
-                     and os.path.isfile( pinplcfile+".{0:d}".format(snapnum)) \
-                     and os.path.isfile( (pincatfile+".{1:d}").format(z, snapnum)):
-                      pass
-                  else:
-                      print("Pinocchio files not found! Check the run!")
+                  if not os.path.isfile(pintlessfile+".{}".format(snapnum)):
+                      print("Pinocchio timeless files not found! Check the run!")
+                      raise FileNotFoundError
+                  if not os.path.isfile(pincosmofile):
+                      print("Pinocchio cosmology files not found! Check the run!")
+                      raise FileNotFoundError
+                  if not os.path.isfile(pingeofile):
+                      print("Pinocchio geometric files not found! Check the run!")
+                      raise FileNotFoundError
+                  if not os.path.isfile(pinmffile.format(z)):
+                      print("Pinocchio mf files not found! Check the run!")
+                      raise FileNotFoundError
+                  if not os.path.isfile( pinplcfile+".{0:d}".format(snapnum)): 
+                      print("Pinocchio plc files not found! Check the run!")
+                      raise FileNotFoundError
+                  if not os.path.isfile( (pincatfile+".{1:d}").format(z, snapnum)):
+                      print("Pinocchio catalogs files not found! Check the run!")
                       raise FileNotFoundError
 
       del z

@@ -15,7 +15,7 @@ except:
 
     raise RuntimeError("Attempt to run HM.py without setting cosmology!")
 
-def W (k, M, z, model = 'bhattacharya13', A=None, B=None, Mpv=None, cmin=None):
+def W (k, M, z, model = 'bhattacharya13', A=None, B=None, Mpv=None, C=None):
     '''
     W(k, M) is the normalized Fourier transform of the halo density profile. Eq. (9)
 
@@ -33,8 +33,8 @@ def W (k, M, z, model = 'bhattacharya13', A=None, B=None, Mpv=None, cmin=None):
         c-M relation power-law parameter
     Mpv: float (Only required if model == 'generic')
         c-M relation pivot parameter
-    cmin: float (Only required if model == 'generic')
-        c-M relation minimum value
+    C: float (Only required if model == 'generic')
+        C-M relation minimum value
     '''
     # Converting k to (kpc/h)^-1
     kinkpc = k/1e3
@@ -43,7 +43,7 @@ def W (k, M, z, model = 'bhattacharya13', A=None, B=None, Mpv=None, cmin=None):
 
         try:
 
-            conc = A * (M/Mpv) ** B + cmin
+            conc = A * (M/Mpv) ** B + C
 
         except TypeError:
 
@@ -69,7 +69,7 @@ def W (k, M, z, model = 'bhattacharya13', A=None, B=None, Mpv=None, cmin=None):
            ( np.sin( kinkpc*rs ) * (si1-si2) - np.sinc(conc*kinkpc*rs/np.pi)*conc/(1.0+conc) +\
              np.cos( kinkpc*rs ) * (ci1-ci2) )
 
-def P1H (k, z, mf, model='bhattacharya13', A=None, B=None, Mpv=None, cmin=None):
+def P1H (k, z, mf, model='bhattacharya13', A=None, B=None, Mpv=None, C=None):
     '''
     One-halo term contribution to the non-linear matter P(k). Eq. (8)/(k/2pi)**3
 
@@ -87,13 +87,13 @@ def P1H (k, z, mf, model='bhattacharya13', A=None, B=None, Mpv=None, cmin=None):
         c-M relation power-law parameter
     Mpv: float (Only required if model == 'generic')
         c-M relation pivot parameter
-    cmin: float (Only required if model == 'generic')
+    C : float (Only required if model == 'generic')
         c-M relation minimum value
     '''
 
     try:
 
-        integrand = [ dndm*W(k, m, z, model, A=A, B=B, Mpv=Mpv, cmin=cmin) ** 2 for m, dndm in zip(mf.m, mf.dndm) ]
+        integrand = [ dndm*W(k, m, z, model, A=A, B=B, Mpv=Mpv, C=C) ** 2 for m, dndm in zip(mf.m, mf.dndm) ]
 
         return 1.0 / (colossus.current_cosmo.rho_m(0.0) * 1e9)**2 * trapz( np.transpose(integrand), x=mf.m, axis=1)
 
@@ -120,7 +120,7 @@ def fitConc (k, z, mf0, mf1, model='bhattacharya13'):
     # Checking if the cumulative mf of the target (mf1) has
     # more objects than the obs (mf0)
     totmass = np.trapz(mf0.dndm * mf0.m**2, x=mf0.m)
-    while ( np.trapz(mf1.dndm * mf1.m**2, x=mf1.m) <= totmass ):
+    while ( np.trapz(mf1.dndm * mf1.m**2, x=mf1.m) >= totmass ):
 
         mf1.update(Mmin=np.log10(mf1.m.min()/2))
 
@@ -136,10 +136,10 @@ def fitConc (k, z, mf0, mf1, model='bhattacharya13'):
 
     # Residual
     # Defining the generic c-M relation (Duffry)
-    p1h = lambda x: np.sum((P1H (k, z, mf0, model='generic', A=x[0], B=x[1], Mpv=x[2]) - target)**2)
+    p1h = lambda x: np.sum((P1H (k, z, mf0, model='generic', A=x[0], B=x[1], Mpv=x[2], C=x[3])/target - 1)**2)
 
     # Minimizing
-    res = minimize(p1h, [5.74, -0.097, 2e12], method='Nelder-Mead', tol=1e-3, bounds=[(0.0, 20), (-1.0, 0.0), (1e10, 1e14)])
+    res = minimize(p1h, [5.74, -0.097, 2e12, 4.0], method='Nelder-Mead', tol=1e-3, bounds=[(0.0, 20), (-1.0, 0.0), (1e10, 1e14), (2.0, 6.0)])
     #res = dual_annealing(p1h, bounds=[(0.0, 20), (-1.0, 0.0), (1e10, 1e14)])
 
     return res
