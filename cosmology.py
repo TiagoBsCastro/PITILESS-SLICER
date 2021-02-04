@@ -18,11 +18,11 @@ _lcdm_for_hmf  = FlatLambdaCDM(H0=params.h0true, Om0=params.omega0, \
 
 hmf_w13 = MassFunction(cosmo_model=_lcdm_for_hmf, n=params.ns, \
                    sigma_8=params.sigma8, transfer_model=params.transfer_model,\
-                   hmf_model=Watson_FoF)
+                   hmf_model=Watson_FoF, Mmin=10.0, Mmax=16.0)
 
 hmf_t10 = MassFunction(cosmo_model=_lcdm_for_hmf, n=params.ns, \
                    sigma_8=params.sigma8, transfer_model=params.transfer_model,\
-                   hmf_model=Tinker10)
+                   hmf_model=Tinker10, Mmin=10.0, Mmax=16.0)
 
 zinterp = np.linspace(0, params.zsource + 0.1, 1000)
 ainterp = 1.0/(1.0+zinterp)

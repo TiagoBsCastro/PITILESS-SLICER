@@ -35,8 +35,8 @@ nlensperbox  = 5
 #### Reads the parameters from Pinocchio's parameters file ####
 ###############################################################
 
-paramfilename = "/beegfs/tcastro/TestRuns/parameter_file"
-directoryname = "/beegfs/tcastro/TestRuns/"
+paramfilename = "../TestRuns/parameter_file"
+directoryname = "../TestRuns/"
 rotatebox     = True
 
 ###############################################################
