@@ -15,7 +15,7 @@ except:
 
     raise RuntimeError("Attempt to run HM.py without setting cosmology!")
 
-def W (k, M, z, model = 'bhattacharya13', A=None, B=None, Mpv=None):
+def W (k, M, z, model = 'bhattacharya13', A=None, B=None, Mpv=None, cmin=None):
     '''
     W(k, M) is the normalized Fourier transform of the halo density profile. Eq. (9)
 
@@ -33,6 +33,8 @@ def W (k, M, z, model = 'bhattacharya13', A=None, B=None, Mpv=None):
         c-M relation power-law parameter
     Mpv: float (Only required if model == 'generic')
         c-M relation pivot parameter
+    cmin: float (Only required if model == 'generic')
+        c-M relation minimum value
     '''
     # Converting k to (kpc/h)^-1
     kinkpc = k/1e3
@@ -41,11 +43,11 @@ def W (k, M, z, model = 'bhattacharya13', A=None, B=None, Mpv=None):
 
         try:
 
-            conc = A * (M/Mpv) ** B
+            conc = A * (M/Mpv) ** B + cmin
 
         except TypeError:
 
-            raise RuntimeError("A, B, Mpv have to be explictly set if model is generic!")
+            raise RuntimeError("A, B, Mpv, cmin have to be explictly set if model is generic!")
 
     else:
 
@@ -67,7 +69,7 @@ def W (k, M, z, model = 'bhattacharya13', A=None, B=None, Mpv=None):
            ( np.sin( kinkpc*rs ) * (si1-si2) - np.sinc(conc*kinkpc*rs/np.pi)*conc/(1.0+conc) +\
              np.cos( kinkpc*rs ) * (ci1-ci2) )
 
-def P1H (k, z, mf, model='bhattacharya13', A=None, B=None, Mpv=None):
+def P1H (k, z, mf, model='bhattacharya13', A=None, B=None, Mpv=None, cmin=None):
     '''
     One-halo term contribution to the non-linear matter P(k). Eq. (8)/(k/2pi)**3
 
@@ -85,11 +87,13 @@ def P1H (k, z, mf, model='bhattacharya13', A=None, B=None, Mpv=None):
         c-M relation power-law parameter
     Mpv: float (Only required if model == 'generic')
         c-M relation pivot parameter
+    cmin: float (Only required if model == 'generic')
+        c-M relation minimum value
     '''
 
     try:
 
-        integrand = [ dndm*W(k, m, z, model, A=A, B=B, Mpv=Mpv) ** 2 for m, dndm in zip(mf.m, mf.dndm) ]
+        integrand = [ dndm*W(k, m, z, model, A=A, B=B, Mpv=Mpv, cmin=cmin) ** 2 for m, dndm in zip(mf.m, mf.dndm) ]
 
         return 1.0 / (colossus.current_cosmo.rho_m(0.0) * 1e9)**2 * trapz( np.transpose(integrand), x=mf.m, axis=1)
 
