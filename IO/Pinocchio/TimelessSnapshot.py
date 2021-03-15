@@ -56,6 +56,7 @@ class timeless_snapshot:
            self.V31   = self.snap.read_block('V3_1', onlythissnap=True)
            self.V32   = self.snap.read_block('V3_2', onlythissnap=True)
            self.Zacc  = self.snap.read_block('ZACC', onlythissnap=True)
+           self.Npart = self.ID.size
 
         self.NG    = np.int(np.float(params.nparticles)**(1./3.)+0.5)
         self.Lbox  = self.snap.Header.boxsize
@@ -88,11 +89,11 @@ class timeless_snapshot:
         if ready_to_bcast:
 
             # Reshaping to be MPI.Broadcast friendly
-            self.qPos = self.qPos.astype(np.float32).reshape((3,params.nparticles))
-            self.V1   = self.V1.astype(np.float32).reshape((3,params.nparticles))
-            self.V2   = self.V2.astype(np.float32).reshape((3,params.nparticles))
-            self.V31  = self.V31.astype(np.float32).reshape((3,params.nparticles))
-            self.V32  = self.V32.astype(np.float32).reshape((3,params.nparticles))
+            self.qPos = self.qPos.astype(np.float32).reshape((3,self.Npart))
+            self.V1   = self.V1.astype(np.float32).reshape((3,self.Npart))
+            self.V2   = self.V2.astype(np.float32).reshape((3,self.Npart))
+            self.V31  = self.V31.astype(np.float32).reshape((3,self.Npart))
+            self.V32  = self.V32.astype(np.float32).reshape((3,self.Npart))
 
     def snapPos(self, z, zcentered=True, filter=None):
         """

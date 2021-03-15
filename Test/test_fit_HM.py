@@ -5,35 +5,51 @@ from IO.Pinocchio.ReadPinocchio import mf, catalog
 from NFW import HM
 from IO.Utils.fixLowMasses import get_mass_correction
 from scipy.optimize import fsolve
+import sys
 
 # BoxSize
 boxsize = 150.0
 # number of snapshots
 nsnap = 64
 # Redshift
-z = 1.9775
-cosmology.hmf_w13.update(z=z)
-cosmology.hmf_t10.update(z=z)
 
-mf0 = mf("../TestRuns/pinocchio.{0:5.4f}.example.catalog.out".format(z), "catalog", nsnap=nsnap, boxsize=boxsize)
+#tgl = np.loadtxt("z=0.00/Pk.txt", skiprows=1)
+tgl = np.loadtxt("z=1.98/Pk.txt", skiprows=1)
 
-# Checking the k which P1HT~0.1 Plin
-#Paux = HM.P1H(cosmology.k, z, cosmology.hmf_t10)/cosmology.Pk / np.interp(1.0/(1.0+z), cosmology.a, cosmology.D)**2 - 0.1
-#kmin = fsolve(lambda k : np.interp(k, cosmology.k, Paux), [1.0])[0]
-kmin = 0.1
-kmax = 10.0
+#for z in [0.0]:
+for z in [1.9775]:
 
-k   = np.geomspace(kmin, kmax)
-sol, brute, log10Mpv = HM.fitConc(k, z, mf0, cosmology.hmf_w13)
+    plt.figure(str(z))
 
-if brute:
-    Pkpin = HM.P1H(k, z, mf0, model='generic', A=sol[0], B=sol[1], C=sol[2], log10Mpv=sol[3])
-else:
-    Pkpin = HM.P1H(k, z, mf0, model='generic', A=sol.x[0], B=sol.x[1], C=sol.x[2], log10Mpv=log10Mpv)
+    cosmology.hmf_w13.update(z=z)
+    cosmology.hmf_t10.update(z=z)
 
-Pktar = HM.P1H(k, z, cosmology.hmf_w13)
+    mf0 = mf("/beegfs/tcastro/TestRuns/pinocchio.{0:5.4f}.example.catalog.out".format(z), "catalog", nsnap=nsnap, boxsize=boxsize)
 
-plt.loglog(k, Pkpin)
-plt.loglog(k, Pktar)
-plt.loglog(cosmology.k, cosmology.Pk * np.interp(1.0/(1.0+z), cosmology.a, cosmology.D)**2)
+    Pk     = np.loadtxt("/beegfs/tcastro/Alice/nbody/uhr/Pk_matter_z={0:4.3f}.dat".format(z))
+    k      = Pk[:,  0]
+    Nk     = Pk[:, -1][k<=2]
+    Pk     = Pk[:,  1][k<=2]
+    k      = k[k<=2]
+    sigma  = np.sqrt( 2.0/Nk + (0.05)**2 ) * Pk
+    Pklin  = np.interp(k, cosmology.k, cosmology.Pk) * np.interp(1.0/(1+z), cosmology.a, cosmology.D)**2  
+
+    #sol = HM.fitConc(k, Pk, Pklin, sigma, z, mf0)
+
+    #Pkpin  = HM.P1H(k, z, mf0, model='generic', A=sol.params['A'].value, B=sol.params['B'].value, C=sol.params['C'].value, log10Mpv=sol.params['log10Mpv'].value)
+    Pkbhat = HM.P1H(k, z, cosmology.hmf_w13, model='bhattacharya13')
+    
+    #plt.loglog(k, Pklin + Pkpin, label="Best-Fit")
+    plt.loglog(k, Pklin + Pkbhat, label="Bhattacharya + Watson")
+    plt.errorbar(k, Pk, sigma, label="Target")
+    plt.loglog(k, Pklin, label="Linear")
+    if z<1.5:
+
+        plt.loglog(tgl[:, 0], tgl[:, -1], label="Halo Fit")
+
+    plt.loglog(tgl[:, 0], tgl[:, 1], label="TGL")
+    plt.xlabel("$k\,[h/Mpc]$")
+    plt.ylabel("$P(k)\,[(Mpc/h)^{3}]$")
+
+plt.legend()
 plt.show()

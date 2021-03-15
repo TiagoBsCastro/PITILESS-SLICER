@@ -3,8 +3,7 @@ from scipy.integrate import quad, trapz, cumtrapz
 import params
 from cosmology import colossus, concentration, profile_nfw
 from scipy.special import sici
-from scipy.optimize import minimize
-from scipy.optimize import dual_annealing, brute
+import lmfit 
 from scipy.optimize import fsolve
 import sys
 
@@ -43,7 +42,7 @@ def W (k, M, z, model = 'diemer19', A=None, B=None, C=None, log10Mpv=None):
 
         try:
 
-            conc = A * (M/(10**log10Mpv)) ** B + C
+            conc = (A * (M/(10**log10Mpv)) ** B) + C
 
         except TypeError:
 
@@ -94,7 +93,7 @@ def P1H (k, z, mf, model='diemer19', A=None, B=None, C=None, log10Mpv=None):
 
     try:
 
-        integrand = mf.dndm * W(k, mf.m, z, model, A=A, B=B, C=C, log10Mpv=log10Mpv) ** 2
+        integrand = mf.dndm * W(k, mf.m, z, model=model, A=A, B=B, C=C, log10Mpv=log10Mpv) ** 2
 
         return 1.0 / (colossus.current_cosmo.rho_m(0.0) * 1e9)**2 * trapz( integrand, x=mf.m, axis=1)
 
@@ -102,66 +101,58 @@ def P1H (k, z, mf, model='diemer19', A=None, B=None, C=None, log10Mpv=None):
 
         raise RuntimeError('k should be a numpy array!!')
 
-def fitConc (k, z, mf0, mf1, model='diemer19'):
+def fitConc (k, Pk, Pklin, sigma, z, mf0, verbose=True):
     '''
     Fits a generic mass-concentration relation by fitting the one
     halo term.
 
     k : numpy array of floats
         Fourier Mode in (Mpc/h)^-1
+    Pk : numpy array
+        Target power-spectrum
+    Pklin : numpy array
+        Linear Power-Spectrum to be used as the 2ht
+    sigma: numpy array
+        Error on the Pk
     z : float
         Redshift
     mf0 : Mass Function object
         The observed mass function
-    mf1 : Mass Function object
-        The target mass function
-    model : Colossus concentration model
-        str (default diemer19)
+
+    returns:
+
+      sol: solution instance of the method applied
+          Best-fit
+      log10Mpv: float
+          The pivot scale used for the CM relation
     '''
-    # Checking if the cumulative mf of the target (mf1) has
-    # more objects than the obs (mf0)
+    # Getting the Mass Pivot
     totmass = np.trapz(mf0.dndm * mf0.m**2, x=mf0.m)
-    while ( np.trapz(mf1.dndm * mf1.m**2, x=mf1.m) <= totmass ):
-
-        mf1.update(Mmin=np.log10(mf1.m.min()/2))
-        if np.log10(mf1.m.min()/2) < 8:
-
-            print("The target HMF never reach Pinocchio's MF!")
-            print("I will stop here!")
-            sys.exit(-1)
-
-    # Getting the Mass equality
-    cmf1 = np.trapz(mf1.dndm * mf1.m**2, x=mf1.m) - cumtrapz(mf1.dndm * mf1.m**2, x=mf1.m)
-    cmf1 = np.append(cmf1, [0.0])
-
-    f    = lambda x: np.interp(x, mf1.m, cmf1) - totmass
-    Mmin = fsolve(f, [mf0.m.min()])
-    mf1.update(Mmin=np.log10(Mmin))
-
-    # The target P1H term
-    target = P1H(k, z, mf1, model=model)
-
-    # Residual
-    # Defining the generic c-M relation (Duffry)
-    # Getting the Mass equality
     cmf0 = totmass - cumtrapz(mf0.dndm * mf0.m**2, x=mf0.m)
     cmf0 = np.append(cmf0, [0.0])
-    f    = lambda x: np.interp(x, mf0.m, cmf0) - totmass/2
-    Mpv = fsolve(f, [mf0.m.min()])
-    p1h  = lambda x: np.sum((P1H (k, z, mf0, model='generic', A=x[0], B=x[1], C=x[2], log10Mpv=np.log10(Mpv))/target - 1)**2)
+    f    = lambda x: np.interp(x, mf0.m, cmf0) / totmass - 0.5
+    Mpv = fsolve(f, [2 * mf0.m.min() * mf0.m.max() / (mf0.m.min() + mf0.m.max())])
+    if ( np.abs(f(Mpv)) >= 1e-3  ):
+
+        print("I could not find a solution for the mass pivot!")
+        sys.exit()
+
+    def res (pars):
+
+        A        = pars['A'].value
+        B        = pars['B'].value
+        C        = pars['C'].value
+        log10Mpv = pars['log10Mpv'].value
+        return np.sum(( ( P1H (k, z, mf0, model='generic', A=A, B=B, C=C, log10Mpv=log10Mpv) + Pklin - Pk)/sigma )**2)
+
+    # Parameters
+    p = lmfit.Parameters()
+    p.add_many(('A', 1.0, True, 0.01, 100.0), ('B', -1.0, True, -4.0, 0.0), ('C', 2.5, True, 2.0, 6.0), ('log10Mpv', np.log10(Mpv), False))
+
     # Minimizing
-    res = dual_annealing(p1h, bounds=[(0.01, 20), (-4.0, 0.0), (2.0, 6.0)])
+    mi = lmfit.minimize(res, p, method='ampgo', nan_policy='omit')
 
-    if res.message[0] == 'Maximum number of iteration reached':
+    if verbose:
+        lmfit.printfuncs.report_fit(mi.params, min_correl=0.5)
 
-        print("Dual Annealing returned: ", res.message[0])
-        print("Trying different solution with Brute Force optimization: ")
-        p1h  = lambda x: np.sum((P1H (k, z, mf0, model='generic', A=x[0], B=x[1], C=x[2], log10Mpv=x[3])/target - 1)**2)
-        res = brute(p1h, ranges=[(0.01, 20), (-4.0, 0.0), (2.0, 6.0), (10, 13)], finish=None)
-        brute_bool = 1
-
-    else:
-
-        brute_bool = 0
-
-    return res, brute_bool, np.log10(Mpv)
+    return mi

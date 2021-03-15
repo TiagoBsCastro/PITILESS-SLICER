@@ -25,18 +25,17 @@ cmmodel = 'bhattacharya' # 'bhattacharya' or 'colossus'
 ################## Past Light Cone Parameters #################
 ###############################################################
 
-inTheBox     = True
-npixels      = 12*2**14
-zsource      = 0.2
-nlensperbox  = 5
+npixels      = 12*2**16
+zsource      = 1.0
+nlensperbox  = 4
 
 ###############################################################
 #################### Pinocchio Parameters #####################
 #### Reads the parameters from Pinocchio's parameters file ####
 ###############################################################
 
-paramfilename = "../TestRuns/parameter_file"
-directoryname = "../TestRuns/"
+paramfilename = "/beegfs/tcastro/TestRuns/parameter_file"
+directoryname = "/beegfs/tcastro/TestRuns/"
 rotatebox     = True
 
 ###############################################################
@@ -58,12 +57,15 @@ if os.path.isfile(paramfilename):
       h0           = 100
       boxsize      = getValueFromFile("BoxSize", paramfile, float)
       minhalomass  = getValueFromFile("MinHaloMass", paramfile, int)
+      ngrid        = getValueFromFile("GridSize", paramfile, int)
       nparticles   = getValueFromFile("GridSize", paramfile, int)**3
       fovindeg     = getValueFromFile("PLCAperture", paramfile, float)
       fovinradians = fovindeg * np.pi/180.0
       runflag      = getValueFromFile("RunFlag", paramfile, str)
       outputlist   = getValueFromFile("OutputList", paramfile, str)
       redshifts    = np.loadtxt(outputlist)
+      if redshifts.size == 1:
+          redshifts = redshifts.reshape(1)
       plcstartingz = getValueFromFile("StartingzForPLC", paramfile, float)
       pintlessfile = directoryname+"pinocchio."+runflag+".t_snapshot.out"
       pincosmofile = directoryname+"pinocchio."+runflag+".cosmology.out"
@@ -132,7 +134,6 @@ if os.path.isfile(paramfilename):
           plcaxis   /= np.sqrt( (plcaxis**2).sum() )
           plccenter  = getValueFromFile("PLCCenter", paramfile, typeArrayFromString(float))
           plccenter /= boxsize
-          plccenter -= np.array([0.5, 0.5, 0.5])
 
           if plcaxis[2] == 1.0:
               plcx  = np.array([1.0, 0.0, 0.0])

@@ -224,9 +224,8 @@ if params.fovindeg < 180.0:
 
         for point in _surface + rep:
 
-            theta = np.arccos(point.dot(params.change_of_basis)/np.linalg.norm(point))
-
-            if theta - params.theta_buff <= params.fovinradians:
+            theta = np.arccos(point.dot(params.change_of_basis)[2]/np.linalg.norm(point))
+            if theta - params.theta_buffer <= params.fovinradians:
 
                 repinfov[i] = True
                 break

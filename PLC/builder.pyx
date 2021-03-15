@@ -125,7 +125,7 @@ cpdef void getSkyCoordinates (float [:,:] qPos, float[:] replication, float [:,:
 
                 coord[i,0] = sqrt(x[0]*x[0]+x[1]*x[1]+x[2]*x[2])
                 coord[i,1] = -acos(x[2]/coord[i,0]) + pi/2.0;
-                coord[i,2] = atan2(x[1],x[0]);
+                coord[i,2] = atan2(x[1],x[0]) - pi;
 
                 if coord[i,2] < 0:
 
