@@ -1,13 +1,12 @@
 import numpy as np
-import matplotlib.pyplot as plt
 import healpy as hp
-import builder
+from PLC import builder
 import cosmology
 import params
 from mpi4py import MPI
 import os
-from snapshot import Timeless_Snapshot
-import ReadPinocchio as rp
+import IO.Pinocchio.TimelessSnapshot as snapshot
+import IO.Pinocchio.ReadPinocchio as rp
 
 # Bunch class for easy MPI handling
 class Bunch:
@@ -25,19 +24,23 @@ if params.nparticles%size:
     print("The data cannot be scattered on {} processes!".format(size))
     comm.Abort()
 
+# particle mass
+mpart = (2.7753663e11 * params.omega0 * params.boxsize ** 3)/params.nparticles
+
 # Start loop on the snapshot files
 for snapnum in range(params.numfiles):
 
    if rank == 0:
 
        print("Rank 0 is Working on the Geometry!")
-       from geometry import geometry
+       from PLC.geometry import geometry
 
-       print("Rank 0 is reading the data!")
+       print("Rank 0 is reading the data! {}/{}".format(snapnum+1, params.numfiles))
        if params.numfiles == 1:
-          ts = Timeless_Snapshot(params.pintlessfile, -1, ready_to_bcast=True)
+          ts = snapshot.timeless_snapshot(params.pintlessfile, -1, ready_to_bcast=True)
        else:
-          ts = Timeless_Snapshot(params.pintlessfile+".{}".format(snapnum), -1, ready_to_bcast=True)
+          ts = snapshot.timeless_snapshot(params.pintlessfile+".{}".format(snapnum), -1, ready_to_bcast=True)
+
        print("All done! Let's go!")
 
        try:
@@ -70,7 +73,7 @@ for snapnum in range(params.numfiles):
    aplcslice = np.empty(npart//size, dtype = np.float32)
    skycoordslice = np.empty((npart//size, 3), dtype = np.float32)
 
-   comm.Scatterv(ts.qPos, qPosslice,root=0)
+   comm.Scatterv(ts.qPos, qPosslice,root=0); qPosslice -= 0.5;# Re-centering the snapshot on [0.5, 0.5, 0.5]
    comm.Scatterv(ts.V1  ,V1slice   ,root=0)
    comm.Scatterv(ts.V2  ,V2slice   ,root=0)
    comm.Scatterv(ts.V31 ,V31slice  ,root=0)
@@ -114,20 +117,20 @@ for snapnum in range(params.numfiles):
       auxcut  = (cosmology.a >= amin) & (cosmology.a <= amax)
       if not rank:
          print( "Number of points inside the redshift range is {} values!".format(np.sum(auxcut) ) )
-      # If there is just one point inside the range use also the neighbours points
-      if auxcut.sum() == 1:
+      # If there is less than the interpolation order points inside the range use also the neighbours points
+      if auxcut.sum() <= params.norder:
           index = auxcut.argmax()
           if index < auxcut.size:
-              auxcut[index + 1] = True
+              auxcut[index + params.norder//2] = True
           if index > 0:
-              auxcut[index - 1] = True
+              auxcut[index - params.norder//2] = True
       # If there is no point inside the range use the neighbours points
       if auxcut.sum() == 0:
           index = ( (cosmology.a - (amax-amin)/2.0)**2 ).argmin()
           if index < auxcut.size:
-              auxcut[index + 1] = True
+              auxcut[index + params.norder//2 + 1] = True
           if index > 0:
-              auxcut[index - 1] = True
+              auxcut[index - params.norder//2 - 1] = True
       if not rank:
          print( "Interpolating the Cosmological functions using {} values!".format(np.sum(auxcut) ) )
 
@@ -161,9 +164,10 @@ for snapnum in range(params.numfiles):
                                                          D31, D32, params.norder, amin, amax)
 
 
-         # If the accretion redshift is hiher than the redshift crossing
+         # If the accretion redshift is smaller than the redshift crossing
          # ignore the particle
          aplcslice[ 1.0/aplcslice -1  < Zaccslice ] = -1.0
+
          builder.getSkyCoordinates(qPosslice, shift.astype(np.float32), V1slice, V2slice, V31slice, V32slice, aplcslice,\
                                                                  skycoordslice,npart//size, D, D2, D31, D32, params.norder)
 
@@ -205,13 +209,13 @@ if not rank:
 
    if params.fovindeg < 180.0:
 
-       pixels = np.linspace(0,params.npixels,params.npixels+1).astype(int)
-       mask   = hp.pix2ang( hp.pixelfunc.npix2nside(params.npixels), pixels)[:,0]
-       mask   = mask > params.fovinradians
+       pixels = np.arange(params.npixels)
+       mask   = hp.pix2ang( hp.pixelfunc.npix2nside(params.npixels), pixels)[0]
+       mask   = (mask <= params.fovinradians)
 
    else:
 
-       mask   = np.linspace(0,params.npixels,params.npixels+1).astype(bool)
+       mask   = np.ones(params.npixels, dtype=bool)
 
    kappa = np.zeros(params.npixels)
 
@@ -220,36 +224,35 @@ if not rank:
       zl = 1.0/2.0*(z1+z2)
 
       deltahi = np.zeros(params.npixels)
+      deltai = hp.fitsfunc.read_map('Maps/delta_'+params.runflag+'_field_fullsky_{}.fits'.format(str(round(zl,4))))
 
       if params.numfiles > 1:
 
          for snapnum in range(params.numfiles):
 
             plc      = rp.plc(params.pinplcfile+".{}".format(snapnum))
-            plc.Mass = (plc.Mass/plc.Mass.min()*params.minhalomass).astype(int)
             groupsinplane = (plc.redshift <= z2) & (plc.redshift > z1)
             pixels = hp.pixelfunc.ang2pix(hp.pixelfunc.npix2nside(params.npixels), \
                  plc.theta[groupsinplane]*np.pi/180.0+np.pi/2.0, plc.phi[groupsinplane]*np.pi/180.0)
-            deltahi += np.histogram(pixels, bins=np.linspace(0,params.npixels,params.npixels+1).astype(int))[0]
+            deltahi += np.histogram(pixels, bins=np.arange(params.npixels+1))[0]
+            deltai  += np.histogram(pixels, bins=np.arange(params.npixels+1), weights=plc.Mass[groupsinplane]/mpart)[0]
 
       else:
 
          plc      = rp.plc(params.pinplcfile)
-         plc.Mass = (plc.Mass/plc.Mass.min()*params.minhalomass).astype(int)
          groupsinplane = (plc.redshift <= z2) & (plc.redshift > z1)
          pixels = hp.pixelfunc.ang2pix(hp.pixelfunc.npix2nside(params.npixels), \
          plc.theta[groupsinplane]*np.pi/180.0+np.pi/2.0, plc.phi[groupsinplane]*np.pi/180.0)
-         deltahi += np.histogram(pixels, bins=np.linspace(0,params.npixels,params.npixels+1).astype(int))[0]
+         deltahi += np.histogram(pixels, bins=np.arange(params.npixels+1))[0]
+         deltai  += np.histogram(pixels, bins=np.arange(params.npixels+1), weights=plc.Mass[groupsinplane]/mpart)[0]
 
-      deltahi[mask]  = hp.UNSEEN
-      deltahi[~mask] = deltahi[~mask]/deltahi[~mask].mean() - 1.0
+      deltahi[~mask]  = hp.UNSEEN
+      deltahi[mask] = deltahi[mask]/deltahi[mask].mean() - 1.0
       hp.fitsfunc.write_map('Maps/delta_'+params.runflag+'_halos_fullsky_{}.fits'.format(str(round(zl,4))), deltahi, overwrite=True)
 
-      deltai = hp.fitsfunc.read_map('Maps/delta_'+params.runflag+'_field_fullsky_{}.fits'.format(str(round(zl,4))))
-
-      deltai[mask]  = hp.UNSEEN
-      deltai[~mask] = deltai[~mask]/deltai[~mask].mean() - 1.0
-      hp.fitsfunc.write_map('Maps/delta_'+params.runflag+'_field_fullsky_{}.fits'.format(str(round(zl,4))), deltai, overwrite=True)
+      deltai[~mask]  = hp.UNSEEN
+      deltai[mask] = deltai[mask]/deltai[mask].mean() - 1.0
+      hp.fitsfunc.write_map('Maps/delta_'+params.runflag+'_matter_fullsky_{}.fits'.format(str(round(zl,4))), deltai, overwrite=True)
 
       kappai = (1.0+zl) * ( ( 1.0 - cosmology.lcdm.comoving_distance(zl)/cosmology.lcdm.comoving_distance(params.zsource) ) *\
                   cosmology.lcdm.comoving_distance(zl) *\
@@ -258,9 +261,7 @@ if not rank:
       kappa += kappai
       hp.fitsfunc.write_map('Maps/kappa_'+params.runflag+'_field_fullsky_{}.fits'.format(str(round(zl,4))), kappai, overwrite=True)
 
-   kappa[mask] = hp.UNSEEN
-   hp.mollview(kappa)
-   plt.show()
+   kappa[~mask] = hp.UNSEEN
 
    cl = hp.anafast(kappa, lmax=512)
    ell = np.arange(len(cl))

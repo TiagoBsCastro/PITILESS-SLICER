@@ -16,16 +16,16 @@ colossus.addCosmology('myCosmo', pdict)
 colossus.setCosmology('myCosmo')
 
 # Load Catalog
-cat = catalog("pinocchio.0.0000.example.catalog.out")
+cat = catalog(params.pincatfile.format(0.0))
 rhoc = cosmology.lcdm.critical_density(0.0).to("M_sun/Mpc^3").value
 rDelta = (3*cat.Mass/4/np.pi/200/rhoc)**(1.0/3)
 
 # Getting particle positions and particle mass
-pos = rs.read_block("pinocchio.example.0.0000.out", "POS ")
-mp  = rs.snapshot_header("pinocchio.example.0.0000.out").massarr[1] * 1e10
+pos = rs.read_block(params.pintlessfile.replace("t_snapshot", r"{0:5.4f}").format(0.0), "POS ")
+mp  = rs.snapshot_header(params.pintlessfile.replace("t_snapshot", r"{0:5.4f}").format(0.0)).massarr[1] * 1e10
 
 # Getting the Index of the i-th passive object in catalog
-idx = np.argsort(cat.Mass)[-100]
+idx = np.argsort(cat.Mass)[-1]
 
 # Getting the first and last icdx of the particles inside the most massive halo
 idxp1 = np.sum(cat.Npart[:idx])

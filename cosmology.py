@@ -4,36 +4,29 @@ import numpy as np
 from astropy.constants import c
 from astropy.cosmology import FlatLambdaCDM, z_at_value
 from astropy.units import Mpc
+from colossus.halo import profile_nfw, concentration
+from colossus.cosmology import cosmology as colossus
+from hmf import MassFunction     # The main hmf class
+from hmf.mass_function.fitting_functions import Tinker10, Watson_FoF
 
 ########################### Cosmological Model ##########################
 lcdm  = FlatLambdaCDM(H0=params.h0, Om0=params.omega0)
 cspeed = c.to('km/s').value
 
+_lcdm_for_hmf  = FlatLambdaCDM(H0=params.h0true, Om0=params.omega0, \
+                               Ob0=params.omegabaryon, Tcmb0=params.TCMB)
+
+hmf_w13 = MassFunction(cosmo_model=_lcdm_for_hmf, n=params.ns, \
+                   sigma_8=params.sigma8, transfer_model=params.transfer_model,\
+                   hmf_model=Watson_FoF, Mmin=10.0, Mmax=16.0)
+
+hmf_t10 = MassFunction(cosmo_model=_lcdm_for_hmf, n=params.ns, \
+                   sigma_8=params.sigma8, transfer_model=params.transfer_model,\
+                   hmf_model=Tinker10, Mmin=10.0, Mmax=16.0)
+
 zinterp = np.linspace(0, params.zsource + 0.1, 1000)
 ainterp = 1.0/(1.0+zinterp)
 Dinterp = lcdm.comoving_distance(zinterp).value
-
-################################ Utils ##################################
-
-def w_tophat(k,r):
-    '''
-    Returns the Fourier Transform of the Spherical Top-Hat function
-    with radius r
-    '''
-    return ( 3.*( np.sin(k * r) - k*r*np.cos(k * r) )/((k * r)**3.))
-
-def ssq (r, k, Dk):
-    '''
-    Returns the integrand of sigma_r^2 given k, r and Dk using the trapezoidal method
-
-    k:  Array
-        Fourier frequency
-    r:  Float
-        Value of the Lagrangean patch corresponding to the smoothing radius
-    Dk: Array
-        Adimensional matter-power spectrum Dk(k)
-    '''
-    return np.trapz( ((w_tophat(k,r))**2)*Dk/k, x=k )
 
 ############################# Lens Planes ###############################
 
@@ -48,7 +41,14 @@ zlinf = zl[ :-1]
 (a, t, D, D2, D31, D32) = np.loadtxt(params.pincosmofile, usecols=(0,1,2,3,4,5), unpack=True)
 (R, DeltaRGauss, k, Pk) = np.loadtxt(params.pincosmofile, usecols=(9, 10, 12, 13), unpack=True)
 
-sigma8 = ssq(8.0 * 100/params.h0true, k, Pk * k**3/2/np.pi**2 )**0.5
+k  = k*100/params.h0true
+Pk = Pk/(100/params.h0true)**3
+
+# Setting cosmology for concentrations
+pdict = {'flat': True, 'H0': params.h0true, 'Om0': params.omega0, 'Ob0': params.omegabaryon,\
+          'sigma8': params.sigma8, 'ns': params.ns}
+colossus.addCosmology('myCosmo', pdict)
+colossus.setCosmology('myCosmo'); del pdict
 
 class PolyFitOrderTooLow (Exception):
     pass

@@ -1,7 +1,7 @@
 import sys
 from copy import deepcopy
-from colossus.cosmology import cosmology as colossus
-from colossus.halo import concentration
+from cosmology import colossus
+from cosmology import concentration
 import NFW.NFWx as NFW
 from mpi4py import MPI
 import time
@@ -69,12 +69,6 @@ dummy_head = deepcopy(snap.snap.Header)
 print("[{}] # Time spent: {} s".format(datetime.datetime.now(), time.time() - start))
 ###########################################################################
 
-# Setting cosmology for concentrations
-pdict = {'flat': True, 'H0': params.h0true, 'Om0': params.omega0, 'Ob0': params.omegabaryon,\
-          'sigma8': cosmology.sigma8, 'ns': params.ns}
-colossus.addCosmology('myCosmo', pdict)
-colossus.setCosmology('myCosmo')
-
 # Looping on the outputlist redshifts
 for z in params.redshifts:
 
@@ -91,7 +85,7 @@ for z in params.redshifts:
         vel1 = np.repeat(cat.vel, cat.Npart, axis=0)\
               + np.random.randn( np.sum(cat.Npart), 3 ) * 150.0 # Maxwell distribution of velocities with 150 km/s dispersion
 
-        rhoc = cosmology.lcdm.critical_density(z).to("M_sun/Mpc^3").value
+        rhoc = cosmology.lcdm.critical_density(z).to("M_sun/Mpc^3").value/(1+z)**3
         rDelta = (3*cat.Mass/4/np.pi/200/rhoc)**(1.0/3)
 
         # Getting concentration

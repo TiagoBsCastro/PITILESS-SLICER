@@ -20,7 +20,7 @@ mp = 1e8
 prec_dict = {}
 
 # Test 1
-if True:
+if False:
 
     for nparti in [100000]:
 
@@ -66,7 +66,7 @@ if True:
 
 
 # Test 2
-if False:
+if True:
 
     for nparti in [100, 1000, 10000, 10000]:
 

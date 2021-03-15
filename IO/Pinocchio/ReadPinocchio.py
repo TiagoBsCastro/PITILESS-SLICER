@@ -55,8 +55,6 @@ Tiago Castro 25/02/2019
 python2 to python3
 
 """
-
-
 import numpy as np
 import os
 import sys
@@ -116,10 +114,8 @@ class plc:
             stopid += Npartial
         f.close()
 
-
-
 class catalog:
-    def __init__(self,filename):
+    def __init__(self,filename, verbose=False):
         if (not os.path.exists(filename)):
             print(("file not found:", filename))
             sys.exit()
@@ -133,25 +129,29 @@ class catalog:
         NSlices = np.fromfile(f,dtype=np.int32,count=1)[0]
         dummy = f.read(4)
 
-        print('This file has been written by ',NTasksPerFile,' tasks')
-        print('The box has been fragmented in ',NSlices,' slices')
+        if verbose:
+            print('This file has been written by ',NTasksPerFile,' tasks')
+            print('The box has been fragmented in ',NSlices,' slices')
 
         # Count the number of halos
         for islice in range( NSlices ):
             for iproc in range(NTasksPerFile):
                 dummy = f.read(4)
                 ngood = np.fromfile(f,dtype=np.int32,count=1)[0]
-                print('ngood ',ngood)
+                if verbose:
+                    print('ngood ',ngood)
                 dummy = f.read(4)
 
                 Ngroups += ngood
                 f.seek(ngood*(11*64//8+2*32//8+2*32//8),1)
 
         # Go back to the starting point (NTasksPerFile already read)
-        print('+++++++++++++++++++')
+        if verbose:
+            print('+++++++++++++++++++')
         f.seek(16)
 
-        print('Total number of halos: ',Ngroups)
+        if verbose:
+            print('Total number of halos: ',Ngroups)
 
         self.name = np.empty(Ngroups,dtype=np.uint64)
         self.Mass = np.empty(Ngroups,dtype=np.float64)
@@ -177,7 +177,8 @@ class catalog:
                 dummy = f.read(4)
                 ngood = np.fromfile(f,dtype=np.int32,count=1)[0]
                 dummy = f.read(4)
-                print('NGOOD ',ngood)
+                if verbose:
+                    print('NGOOD ',ngood)
                 stopid += ngood
                 catalog = np.fromfile(f,dtype=record_dtype,count=ngood)
 
@@ -286,3 +287,87 @@ class histories:
                 startid = stopid
 
         f.close()
+
+class mf:
+
+    def __init__(self, filename, filetype, nsnap=None, boxsize=None):
+
+        if filetype == 'mf':
+            # I will read Pinocchio mf
+            # Pinocchio mf structure
+            # Mass function for redshift 1.000000
+            # 1) mass (Msun/h)
+            # 2) n(m) (Mpc^-3 Msun^-1 h^4)
+            # 3) upper +1-sigma limit for n(m) (Mpc^-3 Msun^-1 h^4)
+            # 4) lower -1-sigma limit for n(m) (Mpc^-3 Msun^-1 h^4)
+            # 5) number of halos in the bin
+            # 6) analytical n(m) from Watson et al. 2013
+            # 7) nu = 1.687/sigma(M)
+
+            if (not os.path.exists(filename)):
+                print( "file not found:", filename)
+                sys.exit()
+
+            mf = np.loadtxt(filename, unpack=True)
+
+            self.m          = mf[0]
+            self.dndm       = mf[1]
+            self.dndlnm     = self.dndm * self.m
+            self.nhalos     = mf[4]
+            self.dndm_teo   = mf[5]
+            self.dndlnm_teo = self.dndm_teo * self.m
+
+        elif filetype == 'catalog':
+            # I will recompute the HMF myself
+            if (nsnap is None) or (boxsize is None):
+
+                print("To recompute the HMF I need the number of snapshots and the boxsize.")
+                sys.exit()
+
+            cat = []
+            npart = []
+            for i in range(nsnap):
+
+                cati   = catalog(filename + ".{}".format(i))
+                cat   += cati.Mass.tolist()
+                npart += cati.Npart.tolist()
+
+            cat   = np.array(cat)
+            npart = np.array(npart)
+            mp    = cat.min()/npart.min()
+
+            nicebinning = False
+            nbins = 100
+            while(not nicebinning):
+
+                m_bins  = np.geomspace(npart.min(), npart.max(), nbins).astype(np.int32)
+                m_bins  = np.unique(m_bins); m_bins[-1] = npart.max()
+                delta_m = (m_bins[1:]-m_bins[:-1]) * mp
+
+                hist, bins = np.histogram(npart, bins=m_bins)
+                m_weighted, bins = np.histogram(npart, bins=m_bins, weights=cat)
+
+                if np.all(hist>0):
+
+                    nicebinning = True
+
+                else:
+
+                    nbins -= 10
+
+                if nbins <= 0:
+
+                    print("I could not find a good binning")
+                    sys.exit()
+
+            self.m          = m_weighted/hist
+            self.dndm       = hist/delta_m/boxsize**3
+            self.dndlnm     = self.dndm * self.m
+            self.nhalos     = hist
+            self.dndm_teo   = None
+            self.dndlnm_teo = None
+            self.delta_m    = delta_m
+
+        else:
+            print( "file type not understood:", filetype)
+            sys.exit()

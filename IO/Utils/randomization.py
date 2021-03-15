@@ -2,7 +2,6 @@ import numpy as np
 from IO.Utils.wrapPositions import wrapPositions
 
 def randomizePositions (center, face, sgn, pos):
-
    '''Randomize the positions acording to the SLICER
       random variables center, face, and sgn'''
 
@@ -35,8 +34,8 @@ def randomizePositions (center, face, sgn, pos):
       zz = temp[:, 0]
 
    xx -= center[0]; yy -= center[1]; zz -= center[2];
-   temp = np.asfortranarray([xx - 0.5, yy - 0.5, zz - 0.5], dtype=np.float32).T
-   wrapPositions(temp);
+   temp = np.asfortranarray([xx-0.5, yy-0.5, zz-0.5], dtype=np.float32).T
+   wrapPositions(temp)
 
    return temp
 
