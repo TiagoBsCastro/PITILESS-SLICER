@@ -7,6 +7,8 @@ from mpi4py import MPI
 import os
 import IO.Pinocchio.TimelessSnapshot as snapshot
 import IO.Pinocchio.ReadPinocchio as rp
+from IO.Utils.print import print
+from time import time
 
 # Bunch class for easy MPI handling
 class Bunch:
@@ -99,7 +101,6 @@ for snapnum in range(params.numfiles):
             print("Reopening density map:", 'Maps/delta_'+params.runflag+'_field_fullsky_{}.fits'.format(str(round(zl,4))))
             deltai = hp.read_map('Maps/delta_'+params.runflag+'_field_fullsky_{}.fits'.format(str(round(zl,4))))
 
-      if not rank:
          print("Lens plane from z=[{0:.3f},{1:.3f}]".format(z1,z2))
 
       # Lens distances
@@ -110,40 +111,34 @@ for snapnum in range(params.numfiles):
       if dlinf == 0.0:
           amax = 1.0
       else:
-          amax  = 1.0/(1.0+cosmology.z_at_value(cosmology.lcdm.comoving_distance, dlinf*(1-params.beta_buffer)*cosmology.Mpc))
+          amax = 1.0/(1.0+cosmology.z_at_value(cosmology.lcdm.comoving_distance, dlinf*(1-params.beta_buffer)*cosmology.Mpc))
 
       # Fitting the cosmological functions inside the range
       # Select points inside the range
       auxcut  = (cosmology.a >= amin) & (cosmology.a <= amax)
       if not rank:
          print( "Number of points inside the redshift range is {} values!".format(np.sum(auxcut) ) )
+
       # If there is less than the interpolation order points inside the range use also the neighbours points
       if auxcut.sum() <= params.norder:
           index = auxcut.argmax()
           if index < auxcut.size:
-              auxcut[index + params.norder//2] = True
+              auxcut[index: index + params.norder + 1] = True
           if index > 0:
-              auxcut[index - params.norder//2] = True
-      # If there is no point inside the range use the neighbours points
-      if auxcut.sum() == 0:
-          index = ( (cosmology.a - (amax-amin)/2.0)**2 ).argmin()
-          if index < auxcut.size:
-              auxcut[index + params.norder//2 + 1] = True
-          if index > 0:
-              auxcut[index - params.norder//2 - 1] = True
+              auxcut[index: index - params.norder - 1] = True
       if not rank:
          print( "Interpolating the Cosmological functions using {} values!".format(np.sum(auxcut) ) )
 
-      D       = cosmology.getWisePolyFit(cosmology.a[auxcut], cosmology.D[auxcut])
-      D2      = cosmology.getWisePolyFit(cosmology.a[auxcut], cosmology.D2[auxcut])
-      D31     = cosmology.getWisePolyFit(cosmology.a[auxcut], cosmology.D31[auxcut])
-      D32     = cosmology.getWisePolyFit(cosmology.a[auxcut], cosmology.D32[auxcut])
-      auxcut  = (cosmology.ainterp >= amin) & (cosmology.ainterp <= amax)
-      DPLC    = cosmology.getWisePolyFit(cosmology.ainterp[auxcut], cosmology.Dinterp[auxcut]/params.boxsize)
+      D      = cosmology.getWisePolyFit(cosmology.a[auxcut], cosmology.D[auxcut])
+      D2     = cosmology.getWisePolyFit(cosmology.a[auxcut], cosmology.D2[auxcut])
+      D31    = cosmology.getWisePolyFit(cosmology.a[auxcut], cosmology.D31[auxcut])
+      D32    = cosmology.getWisePolyFit(cosmology.a[auxcut], cosmology.D32[auxcut])
+      auxcut = (cosmology.ainterp >= amin) & (cosmology.ainterp <= amax)
+      DPLC   = cosmology.getWisePolyFit(cosmology.ainterp[auxcut], cosmology.Dinterp[auxcut]/params.boxsize)
 
       # Check which replications are compressed by the lens
       replicationsinside = geometry[ (geometry['nearestpoint'] < dlsup*(1+params.beta_buffer)) &
-                                      (geometry['farthestpoint'] >= dlinf*(1-params.beta_buffer)) ]
+                                     (geometry['farthestpoint'] >= dlinf*(1-params.beta_buffer)) ]
 
       if not rank:
          print(" Replications inside:")
@@ -158,18 +153,43 @@ for snapnum in range(params.numfiles):
 
          # Position shift of the replication
          shift = np.array(repi[['x','y','z']].tolist()).dot(params.change_of_basis)
+         # Set the 1st guess for plc-crossing to a-collapse
+         aplcslice[ Zaccslice != -1 ] = 1.0/(Zaccslice[ Zaccslice != -1 ] + 1)
+         aplcslice[ Zaccslice == -1 ] = 1.0         
          # Get the scale parameter of the moment that the particle crossed the PLC
-         builder.getCrossingScaleParameterNewtonRaphson (qPosslice + shift.astype(np.float32), V1slice, V2slice,\
+         if not rank:
+             t0 = time()
+         if params.optimizer == "NewtonRaphson":
+             builder.getCrossingScaleParameterNewtonRaphson (qPosslice + shift.astype(np.float32), V1slice, V2slice,\
                                                          V31slice, V32slice, aplcslice, npart//size, DPLC, D, D2,\
                                                          D31, D32, params.norder, amin, amax)
+         elif params.optimizer == "Bisection":
+             builder.getCrossingScaleParameterBissection (qPosslice + shift.astype(np.float32), V1slice, V2slice,\
+                                                         V31slice, V32slice, aplcslice, npart//size, DPLC, D, D2,\
+                                                         D31, D32, params.norder, amin, amax)
+         elif params.optimizer == "Fast":
+             builder.getCrossingScaleParameterFast (qPosslice + shift.astype(np.float32), V1slice, V2slice,\
+                                                         V31slice, V32slice, aplcslice, npart//size, DPLC, D, D2,\
+                                                         D31, D32, params.norder, amin, amax)
+         else:
 
+             raise NotImplementedError("Optimizer {} is not implemented!".format(params.optimizer))
+
+         if not rank:
+             t0 -= time()
 
          # If the accretion redshift is smaller than the redshift crossing
          # ignore the particle
          aplcslice[ 1.0/aplcslice -1  < Zaccslice ] = -1.0
 
+         if not rank:
+             t1 = time()
          builder.getSkyCoordinates(qPosslice, shift.astype(np.float32), V1slice, V2slice, V31slice, V32slice, aplcslice,\
                                                                  skycoordslice,npart//size, D, D2, D31, D32, params.norder)
+
+         if not rank:
+             t1 -= time()
+             print("Rank: 0 spent {}s for getting the PLC crossing and {}s for computing the sky coordinates.".format(-t0, -t1))
 
          # Collect data from the other ranks
          for ranki in range(size):

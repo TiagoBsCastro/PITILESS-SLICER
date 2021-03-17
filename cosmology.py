@@ -30,7 +30,11 @@ Dinterp = lcdm.comoving_distance(zinterp).value
 
 ############################# Lens Planes ###############################
 
-lensthickness = params.boxsize/params.nlensperbox
+if params.nlensperbox != 0:
+  lensthickness = params.boxsize/params.nlensperbox
+else:
+  lensthickness = params.lensthickness
+
 nreplications = int(lcdm.comoving_distance(params.zsource).value/lensthickness + 1 )
 zl    = [0] + [ z_at_value(lcdm.comoving_distance, n*lensthickness*Mpc, zmax = 1e4) for n in range(1, nreplications) ] + [params.zsource]
 zlsup = zl[1:  ]

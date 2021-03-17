@@ -145,6 +145,10 @@ cpdef void getCrossingScaleParameterBisection (float [:,:] qPos, float [:,:] V1,
 
     for i in range(npart):
 
+        if (aplc[i] <= amin):
+           aplc[i] = -1.0
+           continue
+
         a = amin
         b = amax
         c = (a + b)/2
@@ -158,7 +162,7 @@ cpdef void getCrossingScaleParameterBisection (float [:,:] qPos, float [:,:] V1,
 
         else:
 
-            while( 2.0*(b - a)/(b + a) > 1e-2):
+            while( 2.0*(b - a)/(b + a) > 5e-3):
 
                 c = (a+b)/2
                 func(&qPos[i,0], &V1[i,0], &V2[i,0], &V31[i,0], &V32[i,0], &D[0], &D2[0], &D31[0], &D32[0], &DPLC[0], c, norder, &fc, &df)
@@ -184,11 +188,15 @@ cpdef void getCrossingScaleParameterNewtonRaphson (float [:,:] qPos, float [:,:]
                     int npart, float [:] DPLC, float [:] D, float [:] D2, float [:] D31, float [:] D32, int norder, float amin, float amax) nogil:
 
     cdef Py_ssize_t i
-    cdef float fa, fb, a, b, x, f, df
+    cdef float fa, fb, a, b, x, f, df;
     cdef float h;
     with cython.boundscheck(False):
 
         for i in range(npart):
+
+            if (aplc[i] <= amin):
+                aplc[i] = -1.0
+                continue
 
             a = amin
             b = amax
@@ -202,7 +210,7 @@ cpdef void getCrossingScaleParameterNewtonRaphson (float [:,:] qPos, float [:,:]
             else:
                 x = (a+b)/2;
                 h = 9999.9
-                while( fabs(h) > 1e-3):
+                while( fabs(h) > 5e-3):
 
                     func(&qPos[i,0], &V1[i,0], &V2[i,0], &V31[i,0], &V32[i,0], &D[0], &D2[0], &D31[0], &D32[0], &DPLC[0], x, norder, &f, &df)
                     h = f/df
@@ -215,3 +223,25 @@ cpdef void getCrossingScaleParameterNewtonRaphson (float [:,:] qPos, float [:,:]
                 else:
 
                     aplc[i] = -1.0
+
+cpdef void getCrossingScaleParameterFast (float [:,:] qPos, float [:,:] V1, float [:,:] V2, float [:,:] V31, float [:,:] V32, float [:] aplc,
+                    int npart, float [:] DPLC, float [:] D, float [:] D2, float [:] D31, float [:] D32, int norder, float amin, float amax) nogil:
+
+    cdef Py_ssize_t i
+    cdef float fa, fb, a, b, x, f, df;
+    cdef float h;
+    with cython.boundscheck(False):
+
+        for i in range(npart):
+
+            a = amin
+            b = amax
+
+            func(&qPos[i,0], &V1[i,0], &V2[i,0], &V31[i,0], &V32[i,0], &D[0], &D2[0], &D31[0], &D32[0], &DPLC[0], a, norder, &fa, &df)
+            func(&qPos[i,0], &V1[i,0], &V2[i,0], &V31[i,0], &V32[i,0], &D[0], &D2[0], &D31[0], &D32[0], &DPLC[0], b, norder, &fb, &df)
+
+            if (fa*fb)<0:
+                aplc[i] = (amax + amin)/2
+
+            else:
+                aplc[i] = -1.0

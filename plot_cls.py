@@ -5,7 +5,7 @@ from PLC import Cl
 from glob import glob
 from plot_style import *
 
-for i, fname in enumerate(glob("Maps/kappa*")):
+for i, fname in enumerate(glob("Maps/kappa*example*")):
 
     if i == 0:
 

@@ -10,10 +10,6 @@ from hmf.density_field.transfer_models import EH_BAO, CAMB
 ###############################################################
 
 TCMB = 2.7255 # Only used if IC Pk was given by camb
-norder = 4
-# to account for particles that go out of the box
-beta_buffer  = 1e-3
-theta_buffer = 5e-2
 
 ###############################################################
 ######################### C-M Parameters ######################
@@ -25,23 +21,32 @@ cmmodel = 'bhattacharya' # 'bhattacharya' or 'colossus'
 ################## Past Light Cone Parameters #################
 ###############################################################
 
-npixels      = 12*2**16
-zsource      = 1.0
-nlensperbox  = 4
+npixels       = 12*2**14
+zsource       = 1.0
+nlensperbox   = 0
+lensthickness = 256 # Only used if nlensperbox == 0
+norder        = 2
+beta_buffer   = 1e-3 # to account for particles that go out of the box
+theta_buffer  = 5e-2
+optimizer     = 'Fast'
 
 ###############################################################
 #################### Pinocchio Parameters #####################
 #### Reads the parameters from Pinocchio's parameters file ####
 ###############################################################
 
-paramfilename = "/beegfs/tcastro/TestRuns/parameter_file"
-directoryname = "/beegfs/tcastro/TestRuns/"
+paramfilename = "/beegfs/tcastro/TestRunsSmall/parameter_file"
+directoryname = "/beegfs/tcastro/TestRunsSmall/"
 rotatebox     = True
 
 ###############################################################
 ########### Under the Hood from this point Forward ############
 ###############################################################
 ###############################################################
+
+if nlensperbox == 0:
+
+    beta_buffer = 0.0
 
 if os.path.isfile(paramfilename):
 
