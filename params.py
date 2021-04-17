@@ -21,22 +21,22 @@ cmmodel = 'bhattacharya' # 'bhattacharya' or 'colossus'
 ################## Past Light Cone Parameters #################
 ###############################################################
 
-npixels       = 12*2**14
+npixels       = 12*2**22
 zsource       = 1.0
 nlensperbox   = 0
 lensthickness = 256 # Only used if nlensperbox == 0
 norder        = 2
 beta_buffer   = 1e-3 # to account for particles that go out of the box
 theta_buffer  = 5e-2
-optimizer     = 'Fast'
+optimizer     = 'NewtonRaphson'
 
 ###############################################################
 #################### Pinocchio Parameters #####################
 #### Reads the parameters from Pinocchio's parameters file ####
 ###############################################################
 
-paramfilename = "/beegfs/tcastro/TestRunsSmall/parameter_file"
-directoryname = "/beegfs/tcastro/TestRunsSmall/"
+paramfilename = "/beegfs/tcastro/TestRuns/minmass2/parameter_file"
+directoryname = "/beegfs/tcastro/TestRuns/minmass2/"
 rotatebox     = True
 
 ###############################################################

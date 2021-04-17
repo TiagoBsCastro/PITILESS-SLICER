@@ -151,25 +151,27 @@ for snapnum in range(params.numfiles):
                                 str(snapnum + 1).zfill(int(np.log10(params.numfiles) + 1)), params.numfiles,
                                 repi['x'], repi['y'], repi['z']))
 
+         # Set the 1st guess for plc-crossing to a-collapse
+         aplcslicei = np.copy(aplcslice)
+         aplcslicei[ Zaccslice != -1 ] = 1.0/(Zaccslice[ Zaccslice != -1 ] + 1)
+         aplcslicei[ Zaccslice == -1 ] = 1.0         
+
          # Position shift of the replication
          shift = np.array(repi[['x','y','z']].tolist()).dot(params.change_of_basis)
-         # Set the 1st guess for plc-crossing to a-collapse
-         aplcslice[ Zaccslice != -1 ] = 1.0/(Zaccslice[ Zaccslice != -1 ] + 1)
-         aplcslice[ Zaccslice == -1 ] = 1.0         
          # Get the scale parameter of the moment that the particle crossed the PLC
          if not rank:
              t0 = time()
          if params.optimizer == "NewtonRaphson":
              builder.getCrossingScaleParameterNewtonRaphson (qPosslice + shift.astype(np.float32), V1slice, V2slice,\
-                                                         V31slice, V32slice, aplcslice, npart//size, DPLC, D, D2,\
+                                                         V31slice, V32slice, aplcslicei, npart//size, DPLC, D, D2,\
                                                          D31, D32, params.norder, amin, amax)
          elif params.optimizer == "Bisection":
              builder.getCrossingScaleParameterBissection (qPosslice + shift.astype(np.float32), V1slice, V2slice,\
-                                                         V31slice, V32slice, aplcslice, npart//size, DPLC, D, D2,\
+                                                         V31slice, V32slice, aplcslicei, npart//size, DPLC, D, D2,\
                                                          D31, D32, params.norder, amin, amax)
          elif params.optimizer == "Fast":
              builder.getCrossingScaleParameterFast (qPosslice + shift.astype(np.float32), V1slice, V2slice,\
-                                                         V31slice, V32slice, aplcslice, npart//size, DPLC, D, D2,\
+                                                         V31slice, V32slice, aplcslicei, npart//size, DPLC, D, D2,\
                                                          D31, D32, params.norder, amin, amax)
          else:
 
@@ -180,11 +182,11 @@ for snapnum in range(params.numfiles):
 
          # If the accretion redshift is smaller than the redshift crossing
          # ignore the particle
-         aplcslice[ 1.0/aplcslice -1  < Zaccslice ] = -1.0
+         aplcslicei[ (aplcslicei < amin) | (aplcslicei > amax) ] = -1.0
 
          if not rank:
              t1 = time()
-         builder.getSkyCoordinates(qPosslice, shift.astype(np.float32), V1slice, V2slice, V31slice, V32slice, aplcslice,\
+         builder.getSkyCoordinates(qPosslice, shift.astype(np.float32), V1slice, V2slice, V31slice, V32slice, aplcslicei,\
                                                                  skycoordslice,npart//size, D, D2, D31, D32, params.norder)
 
          if not rank:
