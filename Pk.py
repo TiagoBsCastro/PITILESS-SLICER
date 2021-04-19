@@ -4,7 +4,7 @@ import readsnap as rs
 import Pk_library as PKL
 import params
 
-grid     = 256
+grid     = 512
 ptypes   = [1]
 MAS      = 'CIC'
 do_RSD   = False
@@ -12,11 +12,11 @@ axis     = 0
 BoxSize  = params.boxsize
 threads  = 4
 
-for folder in ['../TestRuns/']:
+for folder in ['/beegfs/tcastro/TestRuns/minmass10/']:
 
-    for z in [4.9017, 3.0838, 1.9775, 1.0530, 0.5125, 0.2105, 0.0000]:
+    for z in [0.0]:
 
-        snapshot = folder + 'pinocchio.example.{0:5.4f}.out'.format(z)
+        snapshot = folder + 'pinocchio.minmass10.{0:5.4f}.out'.format(z)
 
         # define the array hosting the density field
         delta = np.zeros((grid,grid,grid), dtype=np.float32)

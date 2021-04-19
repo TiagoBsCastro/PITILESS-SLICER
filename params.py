@@ -15,7 +15,7 @@ TCMB = 2.7255 # Only used if IC Pk was given by camb
 ######################### C-M Parameters ######################
 ###############################################################
 
-cmmodel = 'bhattacharya' # 'bhattacharya' or 'colossus'
+cmmodel = 'colossus' # 'bhattacharya' or 'colossus'
 
 ###############################################################
 ################## Past Light Cone Parameters #################
@@ -24,7 +24,7 @@ cmmodel = 'bhattacharya' # 'bhattacharya' or 'colossus'
 npixels       = 12*2**22
 zsource       = 1.0
 nlensperbox   = 0
-lensthickness = 256 # Only used if nlensperbox == 0
+lensthickness = 125  # Only used if nlensperbox == 0
 norder        = 2
 beta_buffer   = 1e-3 # to account for particles that go out of the box
 theta_buffer  = 5e-2
@@ -35,8 +35,8 @@ optimizer     = 'NewtonRaphson'
 #### Reads the parameters from Pinocchio's parameters file ####
 ###############################################################
 
-paramfilename = "/beegfs/tcastro/TestRuns/minmass2/parameter_file"
-directoryname = "/beegfs/tcastro/TestRuns/minmass2/"
+paramfilename = "/beegfs/tcastro/TestRuns/lowres9/parameter_file"
+directoryname = "/beegfs/tcastro/TestRuns/lowres9/"
 rotatebox     = True
 
 ###############################################################

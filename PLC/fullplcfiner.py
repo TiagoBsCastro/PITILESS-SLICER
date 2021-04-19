@@ -95,11 +95,11 @@ for snapnum in range(params.numfiles):
 
          # If working on this lens plane for the first time create an empy (zeros) delta map
          if not snapnum:
-            deltai = np.zeros(params.npixels)
+            deltai = np.zeros(params.npixels, dtype=np.int64)
          # Else load it from disk
          else:
             print("Reopening density map:", 'Maps/delta_'+params.runflag+'_field_fullsky_{}.fits'.format(str(round(zl,4))))
-            deltai = hp.read_map('Maps/delta_'+params.runflag+'_field_fullsky_{}.fits'.format(str(round(zl,4))))
+            deltai = hp.read_map('Maps/delta_'+params.runflag+'_field_fullsky_{}.fits'.format(str(round(zl,4))), dtype=np.int64)
 
          print("Lens plane from z=[{0:.3f},{1:.3f}]".format(z1,z2))
 
@@ -189,37 +189,48 @@ for snapnum in range(params.numfiles):
          builder.getSkyCoordinates(qPosslice, shift.astype(np.float32), V1slice, V2slice, V31slice, V32slice, aplcslicei,\
                                                                  skycoordslice,npart//size, D, D2, D31, D32, params.norder)
 
+         cut = skycoordslice[:,0] > 0
+         theta, phi = skycoordslice[:,1][cut] + np.pi/2.0, skycoordslice[:,2][cut]
+         pixels = hp.pixelfunc.ang2pix(hp.pixelfunc.npix2nside(params.npixels), theta, phi)
+         if rank:
+
+           deltaii = np.bincount(pixels, minlength=params.npixels).astype(np.int64)
+
+         else:
+
+           print(" Rank: 0 working on its own load.")
+           deltaii = np.empty_like(deltai)
+           deltai += np.bincount(pixels, minlength=params.npixels).astype(np.int64)
+
+         del theta, phi, cut, pixels
+
          if not rank:
              t1 -= time()
-             print("Rank: 0 spent {}s for getting the PLC crossing and {}s for computing the sky coordinates.".format(-t0, -t1))
+             print(" Rank: 0 spent {0:4.3f}s for getting the PLC crossing and {1:4.3f}s for computing the sky coordinates.".format(-t0, -t1))
 
          # Collect data from the other ranks
          for ranki in range(size):
 
             if (rank == ranki) and ranki > 0:
-
-               comm.Send(skycoordslice, dest=0)
+               comm.Send(deltaii, dest=0)
+               print(deltaii)
 
             if rank == 0:
 
                if ranki:
                   print(" Rank: 0 receving slice from Rank: {}".format(ranki))
-                  comm.Recv(skycoordslice, source=ranki)
-               else:
-                  print(" Rank: 0 working on its own load".format(ranki))
-
-               cut = skycoordslice[:,0] > 0
-               theta, phi = skycoordslice[:,1][cut] + np.pi/2.0, skycoordslice[:,2][cut]
-               pixels = hp.pixelfunc.ang2pix(hp.pixelfunc.npix2nside(params.npixels), theta, phi)
-               # Rank 0 update the map
-               deltai += np.histogram(pixels, bins=np.linspace(0,params.npixels,params.npixels+1).astype(int))[0]
+                  comm.Recv(deltaii, source=ranki)
+                  # Rank 0 update the map
+                  print(deltaii)
+                  deltai += deltaii
 
             comm.Barrier()
 
+         del deltaii 
+
       if rank == 0:
          # Rank 0 writes the collected map
-         hp.fitsfunc.write_map('Maps/delta_'+params.runflag+'_field_fullsky_{}.fits'.format(str(round(zl,4))), deltai, overwrite=True)
-
+         hp.fitsfunc.write_map('Maps/delta_'+params.runflag+'_field_fullsky_{}.fits'.format(str(round(zl,4))), deltai, overwrite=True, dtype=np.int64)
          print("\n++++++++++++++++++++++\n")
 
       comm.Barrier()
@@ -246,7 +257,7 @@ if not rank:
       zl = 1.0/2.0*(z1+z2)
 
       deltahi = np.zeros(params.npixels)
-      deltai = hp.fitsfunc.read_map('Maps/delta_'+params.runflag+'_field_fullsky_{}.fits'.format(str(round(zl,4))))
+      deltai = hp.fitsfunc.read_map('Maps/delta_'+params.runflag+'_field_fullsky_{}.fits'.format(str(round(zl,4))), dtype=np.int64).astype(np.float64)
 
       if params.numfiles > 1:
 
@@ -256,8 +267,8 @@ if not rank:
             groupsinplane = (plc.redshift <= z2) & (plc.redshift > z1)
             pixels = hp.pixelfunc.ang2pix(hp.pixelfunc.npix2nside(params.npixels), \
                  plc.theta[groupsinplane]*np.pi/180.0+np.pi/2.0, plc.phi[groupsinplane]*np.pi/180.0)
-            deltahi += np.histogram(pixels, bins=np.arange(params.npixels+1))[0]
-            deltai  += np.histogram(pixels, bins=np.arange(params.npixels+1), weights=plc.Mass[groupsinplane]/mpart)[0]
+            deltahi += np.bincount(pixels, minlength=params.npixels)
+            deltai  += np.bincount(pixels, minlength=params.npixels, weights=(np.round(plc.Mass[groupsinplane]/mpart)).astype(np.float64))
 
       else:
 
@@ -265,23 +276,24 @@ if not rank:
          groupsinplane = (plc.redshift <= z2) & (plc.redshift > z1)
          pixels = hp.pixelfunc.ang2pix(hp.pixelfunc.npix2nside(params.npixels), \
          plc.theta[groupsinplane]*np.pi/180.0+np.pi/2.0, plc.phi[groupsinplane]*np.pi/180.0)
-         deltahi += np.histogram(pixels, bins=np.arange(params.npixels+1))[0]
-         deltai  += np.histogram(pixels, bins=np.arange(params.npixels+1), weights=plc.Mass[groupsinplane]/mpart)[0]
+         deltahi += np.bincount(pixels, minlength=params.npixels)
+         deltai  += np.bincount(pixels, minlength=params.npixels, weights=(np.round(plc.Mass[groupsinplane]/mpart)).astype(np.float64))
+
 
       deltahi[~mask]  = hp.UNSEEN
       deltahi[mask] = deltahi[mask]/deltahi[mask].mean() - 1.0
-      hp.fitsfunc.write_map('Maps/delta_'+params.runflag+'_halos_fullsky_{}.fits'.format(str(round(zl,4))), deltahi, overwrite=True)
+      hp.fitsfunc.write_map('Maps/delta_'+params.runflag+'_halos_fullsky_{}.fits'.format(str(round(zl,4))), deltahi, overwrite=True, dtype=np.float32)
 
       deltai[~mask]  = hp.UNSEEN
       deltai[mask] = deltai[mask]/deltai[mask].mean() - 1.0
-      hp.fitsfunc.write_map('Maps/delta_'+params.runflag+'_matter_fullsky_{}.fits'.format(str(round(zl,4))), deltai, overwrite=True)
+      hp.fitsfunc.write_map('Maps/delta_'+params.runflag+'_matter_fullsky_{}.fits'.format(str(round(zl,4))), deltai, overwrite=True, dtype=np.float32)
 
       kappai = (1.0+zl) * ( ( 1.0 - cosmology.lcdm.comoving_distance(zl)/cosmology.lcdm.comoving_distance(params.zsource) ) *\
                   cosmology.lcdm.comoving_distance(zl) *\
                 ( cosmology.lcdm.comoving_distance(z2) - cosmology.lcdm.comoving_distance(z1) ) ).to_value() * deltai
       kappai *= (3.0 * cosmology.lcdm.Om0*cosmology.lcdm.H0**2/2.0/cosmology.cspeed**2).to_value()
       kappa += kappai
-      hp.fitsfunc.write_map('Maps/kappa_'+params.runflag+'_field_fullsky_{}.fits'.format(str(round(zl,4))), kappai, overwrite=True)
+      hp.fitsfunc.write_map('Maps/kappa_'+params.runflag+'_field_fullsky_{}.fits'.format(str(round(zl,4))), kappai, overwrite=True, dtype=np.float32)
 
    kappa[~mask] = hp.UNSEEN
 
