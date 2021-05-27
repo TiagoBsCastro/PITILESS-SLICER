@@ -21,10 +21,10 @@ cmmodel = 'colossus' # 'bhattacharya' or 'colossus'
 ################## Past Light Cone Parameters #################
 ###############################################################
 
-npixels       = 12*2**22
+npixels       = 12*2**20
 zsource       = 1.0
 nlensperbox   = 0
-lensthickness = 125  # Only used if nlensperbox == 0
+lensthickness = 250  # Only used if nlensperbox == 0
 norder        = 2
 beta_buffer   = 1e-3 # to account for particles that go out of the box
 theta_buffer  = 5e-2
@@ -35,8 +35,8 @@ optimizer     = 'NewtonRaphson'
 #### Reads the parameters from Pinocchio's parameters file ####
 ###############################################################
 
-paramfilename = "/beegfs/tcastro/TestRuns/lowres9/parameter_file"
-directoryname = "/beegfs/tcastro/TestRuns/lowres9/"
+paramfilename = "/beegfs/pmonaco/Pinocchio/LargePLC_timeless/SmallerPLC/SmallerPLC_0.bis"
+directoryname = "/beegfs/pmonaco/Pinocchio/LargePLC_timeless/SmallerPLC/"
 rotatebox     = True
 
 ###############################################################
@@ -113,6 +113,7 @@ if os.path.isfile(paramfilename):
               for snapnum in range(numfiles):
 
                   if not os.path.isfile(pintlessfile+".{}".format(snapnum)):
+                      print(pintlessfile+".{}".format(snapnum))
                       print("Pinocchio timeless files not found! Check the run!")
                       raise FileNotFoundError
                   if not os.path.isfile(pincosmofile):
@@ -148,13 +149,11 @@ if os.path.isfile(paramfilename):
               plcx /= np.sqrt( (plcx**2).sum() )
               plcy  = np.cross(plcaxis, plcx)
 
-          change_of_basis = np.transpose([plcx,plcy, plcaxis]).T
+          change_of_basis = np.transpose([plcx,plcy, plcaxis])
 
       else:
 
-          print("!!                       WARNING                            !!")
-          print("!!Pinocchio was run without specifying the PLC center and axis!!\n")
-          print("!!                       WARNING                            !!")
+          raise RuntimeError("!! Pinocchio was run without specifying the PLC center and axis!! ")
 
       if checkIfBoolExists("CatalogInAscii", paramfile):
 
