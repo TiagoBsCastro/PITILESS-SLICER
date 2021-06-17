@@ -2,7 +2,7 @@ import numpy as np
 import params
 import cosmology
 
-_N = 10
+_N = 1000
 
 # List of Vertices of a unit cube centered at 0.0, 0.0, 0.0
 _vertices  = np.array([[0.,0.,0.],[0.,0.,1.],
