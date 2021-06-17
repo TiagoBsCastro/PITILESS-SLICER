@@ -1,13 +1,13 @@
+from mpi4py import MPI
+from IO.Utils.print import print
+import params
 import numpy as np
 import healpy as hp
 from PLC import builder
 import cosmology
-import params
-from mpi4py import MPI
 import os
 import IO.Pinocchio.TimelessSnapshot as snapshot
 import IO.Pinocchio.ReadPinocchio as rp
-from IO.Utils.print import print
 from time import time
 
 # Bunch class for easy MPI handling
@@ -21,7 +21,7 @@ rank = comm.Get_rank()
 size = comm.Get_size()
 
 # Check if the simplistic work balance will do
-if params.nparticles%size:
+if (params.nparticles/params.numfiles)%size:
 
     print("The data cannot be scattered on {} processes!".format(size))
     comm.Abort()
@@ -154,7 +154,7 @@ for snapnum in range(params.numfiles):
          # Set the 1st guess for plc-crossing to a-collapse
          aplcslicei = np.copy(aplcslice)
          aplcslicei[ Zaccslice != -1 ] = 1.0/(Zaccslice[ Zaccslice != -1 ] + 1)
-         aplcslicei[ Zaccslice == -1 ] = 1.0         
+         aplcslicei[ Zaccslice == -1 ] = 1.0
 
          # Position shift of the replication
          shift = np.array(repi[['x','y','z']].tolist()).dot(params.change_of_basis)
@@ -191,6 +191,8 @@ for snapnum in range(params.numfiles):
 
          cut = skycoordslice[:,0] > 0
          theta, phi = skycoordslice[:,1][cut] + np.pi/2.0, skycoordslice[:,2][cut]
+         phi    = phi[np.pi - theta <= params.fovinradians]
+         theta  = theta[np.pi - theta <= params.fovinradians]
          pixels = hp.pixelfunc.ang2pix(hp.pixelfunc.npix2nside(params.npixels), theta, phi)
          if rank:
 
@@ -226,7 +228,7 @@ for snapnum in range(params.numfiles):
 
             comm.Barrier()
 
-         del deltaii 
+         del deltaii
 
       if rank == 0:
          # Rank 0 writes the collected map
@@ -243,8 +245,8 @@ if not rank:
    if params.fovindeg < 180.0:
 
        pixels = np.arange(params.npixels)
-       mask   = hp.pix2ang( hp.pixelfunc.npix2nside(params.npixels), pixels)[0]
-       mask   = (mask <= params.fovinradians)
+       mask   = hp.pix2ang( hp.pixelfunc.npix2nside(params.npixels), pixels)[0] * 180.0/np.pi
+       mask   = (mask >= 180.0 - params.fovindeg)
 
    else:
 
@@ -292,10 +294,9 @@ if not rank:
                   cosmology.lcdm.comoving_distance(zl) *\
                 ( cosmology.lcdm.comoving_distance(z2) - cosmology.lcdm.comoving_distance(z1) ) ).to_value() * deltai
       kappai *= (3.0 * cosmology.lcdm.Om0*cosmology.lcdm.H0**2/2.0/cosmology.cspeed**2).to_value()
-      kappa += kappai
+      kappa[mask]  += kappai[mask]
+      kappai[~mask] = hp.UNSEEN
       hp.fitsfunc.write_map('Maps/kappa_'+params.runflag+'_field_fullsky_{}.fits'.format(str(round(zl,4))), kappai, overwrite=True, dtype=np.float32)
-
-   kappa[~mask] = hp.UNSEEN
 
    cl = hp.anafast(kappa, lmax=512)
    ell = np.arange(len(cl))

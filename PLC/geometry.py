@@ -2,7 +2,7 @@ import numpy as np
 import params
 import cosmology
 
-_N = 1000
+_N = 10
 
 # List of Vertices of a unit cube centered at 0.0, 0.0, 0.0
 _vertices  = np.array([[0.,0.,0.],[0.,0.,1.],
@@ -58,7 +58,7 @@ _border = getBorder()
 
 def getVertices(repx,repy,repz):
     '''
-    Returns the vertice's positions of the repetition 
+    Returns the vertice's positions of the repetition
     with cordinates repx, repy, repz
 
     repx, repy, repz should be in Box Size units
@@ -71,7 +71,7 @@ def getVertices(repx,repy,repz):
 
 def getArestas(repx, repy, repz):
     '''
-    Returns the aresta's positions of the repetition 
+    Returns the aresta's positions of the repetition
     with cordinates repx, repy, repz
 
     repx, repy, repz should be in Box Size units
@@ -85,7 +85,7 @@ def getArestas(repx, repy, repz):
 
 def getFaces(repx, repy, repz):
     '''
-    Returns the face's positions of the repetition 
+    Returns the face's positions of the repetition
     with cordinates repx, repy, repz
 
     repx, repy, repz should be in Box Size units
@@ -98,7 +98,7 @@ def getFaces(repx, repy, repz):
 
 def getClosestAresta(repx, repy,repz):
     '''
-    Returns the Closest aresta's position of the repetition 
+    Returns the Closest aresta's position of the repetition
     with cordinates repx, repy, repz
 
     repx, repy, repz should be in Box Size units
@@ -111,7 +111,7 @@ def getClosestAresta(repx, repy,repz):
 
 def getFarthestAresta(repx, repy,repz):
     '''
-    Returns the Farthest aresta's position of the repetition 
+    Returns the Farthest aresta's position of the repetition
     with cordinates repx, repy, repz
 
     repx, repy, repz should be in Box Size units
@@ -124,7 +124,7 @@ def getFarthestAresta(repx, repy,repz):
 
 def getClosestFace(repx, repy,repz):
     '''
-    Returns the Closest face's center position of the repetition 
+    Returns the Closest face's center position of the repetition
     with cordinates repx, repy, repz
 
     repx, repy, repz should be in Box Size units
@@ -137,7 +137,7 @@ def getClosestFace(repx, repy,repz):
 
 def getFarthestFace(repx, repy,repz):
     '''
-    Returns the Farthest Face's center position of the repetition 
+    Returns the Farthest Face's center position of the repetition
     with cordinates repx, repy, repz
 
     repx, repy, repz should be in Box Size units
@@ -150,7 +150,7 @@ def getFarthestFace(repx, repy,repz):
 
 def getClosestVertice(repx, repy,repz):
     '''
-    Returns the Closest vertice's positions of the repetition 
+    Returns the Closest vertice's positions of the repetition
     with cordinates repx, repy, repz
 
     repx, repy, repz should be in Box Size units
@@ -163,7 +163,7 @@ def getClosestVertice(repx, repy,repz):
 
 def getFarthestVertice(repx, repy,repz):
     '''
-    Returns the Farthest vertice's positions of the repetition 
+    Returns the Farthest vertice's positions of the repetition
     with cordinates repx, repy, repz
 
     repx, repy, repz should be in Box Size units
@@ -175,7 +175,7 @@ def getFarthestVertice(repx, repy,repz):
 
 def getClosestIntersection(repx,repy,repz):
     '''
-    Returns the Closest Intersection of the repetition 
+    Returns the Closest Intersection of the repetition
     with cordinates repx, repy, repz with the Past-Light Cone
 
     repx, repy, repz should be in Box Size units
@@ -201,7 +201,7 @@ def getClosestIntersection(repx,repy,repz):
 
 def getFarthestIntersection(repx,repy,repz):
     '''
-    Returns the Farthest Intersection of the repetition 
+    Returns the Farthest Intersection of the repetition
     with cordinates repx, repy, repz with the Past-Light Cone
 
     repx, repy, repz should be in Box Size units
@@ -209,7 +209,7 @@ def getFarthestIntersection(repx,repy,repz):
     return  np.sqrt( (getFarthestVertice(repx,repy,repz)**2).sum() )
 
 
-repmax = int(cosmology.lcdm.comoving_distance(params.plcstartingz).value/params.boxsize) + 1
+repmax = int(cosmology.lcdm.comoving_distance(params.zsource).value/params.boxsize) + 1
 
 geometry = np.array(
      [ [repx, repy, repz, getClosestIntersection(repx,repy,repz), getFarthestIntersection(repx, repy, repz) ]
@@ -224,17 +224,24 @@ if params.fovindeg < 180.0:
 
         for point in _surface + rep:
 
-            theta = np.arccos(point.dot(params.change_of_basis)[2]/np.linalg.norm(point))
+            theta = np.arccos(point.dot(params.change_of_basis[2])/np.linalg.norm(point))
+            if theta < 0:
+                theta += np.pi/2.0
+
             if theta - params.theta_buffer <= params.fovinradians:
 
                 repinfov[i] = True
                 break
+
+            else:
+
+                repinfov[i] = False
 
     geometry = geometry[repinfov]
 
 dt = np.dtype([('x', float), ('y', float),('z', float),('nearestpoint', float),('farthestpoint', np.float)])
 geometry.dtype = dt
 geometry['nearestpoint']  *= params.boxsize
-geometry['farthestpoint'] *=params.boxsize
+geometry['farthestpoint'] *= params.boxsize
 
 del _vertices, _arestas, _faces, _border, _surface
