@@ -1,8 +1,15 @@
+from mpi4py import MPI
+from IO.Utils.print import print
 from IO.Params.readparams import getValueFromFile, typeArrayFromString, checkIfBoolExists
 import os
 import numpy as np
 import sys
 from hmf.density_field.transfer_models import EH_BAO, CAMB
+
+# MPI comunicatior, rank and size of procs
+comm = MPI.COMM_WORLD
+rank = comm.Get_rank()
+size = comm.Get_size()
 
 ###############################################################
 ###############################################################
@@ -21,8 +28,8 @@ cmmodel = 'colossus' # 'bhattacharya' or 'colossus'
 ################## Past Light Cone Parameters #################
 ###############################################################
 
-npixels       = 12*2**20
-zsource       = 1.0
+npixels       = 12*2**24
+zsource       = 0.3
 nlensperbox   = 0
 lensthickness = 250  # Only used if nlensperbox == 0
 norder        = 2
@@ -35,8 +42,8 @@ optimizer     = 'NewtonRaphson'
 #### Reads the parameters from Pinocchio's parameters file ####
 ###############################################################
 
-paramfilename = "/beegfs/pmonaco/Pinocchio/LargePLC_timeless/SmallerPLC/SmallerPLC_0.bis"
-directoryname = "/beegfs/pmonaco/Pinocchio/LargePLC_timeless/SmallerPLC/"
+paramfilename = "/beegfs/tcastro/TestRuns/lowres2/parameter_file"
+directoryname = "/beegfs/tcastro/TestRuns/lowres2/"
 rotatebox     = True
 
 ###############################################################
@@ -54,24 +61,24 @@ if os.path.isfile(paramfilename):
 
    try:
 
-      omega0       = getValueFromFile("Omega0", paramfile, float)
-      omegabaryon  = getValueFromFile("OmegaBaryon", paramfile, float)
-      h0true       = getValueFromFile("Hubble100", paramfile, float)*100
-      ns           = getValueFromFile("PrimordialIndex", paramfile, float)
-      sigma8       = getValueFromFile("Sigma8", paramfile, float)
+      omega0       = getValueFromFile("Omega0", paramfile, float, rank)
+      omegabaryon  = getValueFromFile("OmegaBaryon", paramfile, float, rank)
+      h0true       = getValueFromFile("Hubble100", paramfile, float, rank)*100
+      ns           = getValueFromFile("PrimordialIndex", paramfile, float, rank)
+      sigma8       = getValueFromFile("Sigma8", paramfile, float, rank)
       h0           = 100
-      boxsize      = getValueFromFile("BoxSize", paramfile, float)
-      minhalomass  = getValueFromFile("MinHaloMass", paramfile, int)
-      ngrid        = getValueFromFile("GridSize", paramfile, int)
-      nparticles   = getValueFromFile("GridSize", paramfile, int)**3
-      fovindeg     = getValueFromFile("PLCAperture", paramfile, float)
+      boxsize      = getValueFromFile("BoxSize", paramfile, float, rank)
+      minhalomass  = getValueFromFile("MinHaloMass", paramfile, int, rank)
+      ngrid        = getValueFromFile("GridSize", paramfile, int, rank)
+      nparticles   = getValueFromFile("GridSize", paramfile, int, rank)**3
+      fovindeg     = getValueFromFile("PLCAperture", paramfile, float, rank)
       fovinradians = fovindeg * np.pi/180.0
-      runflag      = getValueFromFile("RunFlag", paramfile, str)
-      outputlist   = getValueFromFile("OutputList", paramfile, str)
+      runflag      = getValueFromFile("RunFlag", paramfile, str, rank)
+      outputlist   = getValueFromFile("OutputList", paramfile, str, rank)
       redshifts    = np.loadtxt(outputlist)
       if redshifts.size == 1:
           redshifts = redshifts.reshape(1)
-      plcstartingz = getValueFromFile("StartingzForPLC", paramfile, float)
+      plcstartingz = getValueFromFile("StartingzForPLC", paramfile, float, rank)
       pintlessfile = directoryname+"pinocchio."+runflag+".t_snapshot.out"
       pincosmofile = directoryname+"pinocchio."+runflag+".cosmology.out"
       pingeofile   = directoryname+"pinocchio."+runflag+".geometry.out"
@@ -79,7 +86,7 @@ if os.path.isfile(paramfilename):
       pincatfile   = directoryname+"pinocchio.{0:5.4f}."+runflag+".catalog.out"
       pinmffile    = directoryname+"pinocchio.{0:5.4f}."+runflag+".mf.out"
 
-      analyticmf = getValueFromFile("AnalyticMassFunction", paramfile, int)
+      analyticmf = getValueFromFile("AnalyticMassFunction", paramfile, int, rank)
 
       if analyticmf != 9:
 
@@ -88,7 +95,7 @@ if os.path.isfile(paramfilename):
       try:
 
           numfiles = getValueFromFile("NumFiles", paramfile, int)
-          print("NumFiles = {}".format(numfiles))
+          print("NumFiles = {}".format(numfiles), rank=rank)
 
       except ParameterNotFound:
 
@@ -103,7 +110,7 @@ if os.path.isfile(paramfilename):
                  and os.path.isfile(pincatfile.format(z)) and os.path.isfile(pinmffile.format(z)):
                   pass
               else:
-                  print("Pinocchio files not found! Check the run!")
+                  print("Pinocchio files not found! Check the run!", rank=rank)
                   raise FileNotFoundError
 
       else:
@@ -113,32 +120,32 @@ if os.path.isfile(paramfilename):
               for snapnum in range(numfiles):
 
                   if not os.path.isfile(pintlessfile+".{}".format(snapnum)):
-                      print(pintlessfile+".{}".format(snapnum))
-                      print("Pinocchio timeless files not found! Check the run!")
+                      print(pintlessfile+".{}".format(snapnum), rank=rank)
+                      print("Pinocchio timeless files not found! Check the run!", rank=rank)
                       raise FileNotFoundError
                   if not os.path.isfile(pincosmofile):
-                      print("Pinocchio cosmology files not found! Check the run!")
+                      print("Pinocchio cosmology files not found! Check the run!", rank=rank)
                       raise FileNotFoundError
                   if not os.path.isfile(pingeofile):
-                      print("Pinocchio geometric files not found! Check the run!")
+                      print("Pinocchio geometric files not found! Check the run!", rank=rank)
                       raise FileNotFoundError
                   if not os.path.isfile(pinmffile.format(z)):
-                      print("Pinocchio mf files not found! Check the run!")
+                      print("Pinocchio mf files not found! Check the run!", rank=rank)
                       raise FileNotFoundError
-                  if not os.path.isfile( pinplcfile+".{0:d}".format(snapnum)): 
-                      print("Pinocchio plc files not found! Check the run!")
+                  if not os.path.isfile( pinplcfile+".{0:d}".format(snapnum)):
+                      print("Pinocchio plc files not found! Check the run!", rank=rank)
                       raise FileNotFoundError
                   if not os.path.isfile( (pincatfile+".{1:d}").format(z, snapnum)):
-                      print("Pinocchio catalogs files not found! Check the run!")
+                      print("Pinocchio catalogs files not found! Check the run!", rank=rank)
                       raise FileNotFoundError
 
       del z
 
-      if checkIfBoolExists("PLCProvideConeData", paramfile):
+      if checkIfBoolExists("PLCProvideConeData", paramfile, rank):
 
-          plcaxis    = getValueFromFile("PLCAxis", paramfile, typeArrayFromString(float))
+          plcaxis    = getValueFromFile("PLCAxis", paramfile, typeArrayFromString(float), rank)
           plcaxis   /= np.sqrt( (plcaxis**2).sum() )
-          plccenter  = getValueFromFile("PLCCenter", paramfile, typeArrayFromString(float))
+          plccenter  = getValueFromFile("PLCCenter", paramfile, typeArrayFromString(float), rank)
           plccenter /= boxsize
 
           if plcaxis[2] == 1.0:
@@ -155,14 +162,14 @@ if os.path.isfile(paramfilename):
 
           raise RuntimeError("!! Pinocchio was run without specifying the PLC center and axis!! ")
 
-      if checkIfBoolExists("CatalogInAscii", paramfile):
+      if checkIfBoolExists("CatalogInAscii", paramfile, rank):
 
           raise RuntimeError("!! Catalogs were generated in ASCII format !!")
 
       if plcstartingz < zsource:
 
-          print("StartingzForPLC ({}) is smaller than the source redshift ({}).".format(plcstartingz, zsource))
-          print("If this is exactly what you want comment this error Raising in params.py.")
+          print("StartingzForPLC ({}) is smaller than the source redshift ({}).".format(plcstartingz, zsource), rank=rank)
+          print("If this is exactly what you want comment this error Raising in params.py.", rank=rank)
           raise RuntimeError
 
       # Computing sigma8 instead if it is 0
@@ -175,6 +182,7 @@ if os.path.isfile(paramfilename):
           w     = lambda r: ( 3.*( np.sin(k * r) - k*r*np.cos(k * r) )/((k * r)**3.))
 
           sigma8 = np.trapz( w(8.0*100/h0true)**2 * Dk/k, x=k)**0.5
+          print("Sigma8 computed from pinocchio cosmology file: {}".format(sigma8), rank=rank)
           del k, Pk, Dk, w
 
       else:

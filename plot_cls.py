@@ -6,19 +6,23 @@ import params
 from glob import glob
 from plot_style import *
 
-for name in ["large-plc", "minmass2", "minmass10", "minmass100", "minmass1000", "minmass10000"]:
+for name in ["lowres2"]:
 
   for i, fname in enumerate(glob("Maps/kappa_{}_*".format(name))):
+
+    print(fname)
 
     if i == 0:
 
         kappa = hp.read_map(fname, dtype=np.float32)
+        mask  = (kappa != hp.UNSEEN)
+        norm  = mask.size/mask.sum()
 
     else:
 
-        kappa += hp.read_map(fname, dtype=np.float32)
+        kappa[mask] += hp.read_map(fname, dtype=np.float32)[mask]
 
-  cls_pin = hp.anafast(kappa)
+  cls_pin = hp.anafast(kappa) * norm
   l_pin   = np.arange(cls_pin.size)
 
   plt.loglog(l_pin, l_pin * (l_pin+1) * cls_pin, label="Pinocchio "+name)

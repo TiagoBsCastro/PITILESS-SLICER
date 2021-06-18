@@ -8,6 +8,8 @@ import cosmology
 import os
 import IO.Pinocchio.TimelessSnapshot as snapshot
 import IO.Pinocchio.ReadPinocchio as rp
+import astropy.coordinates as ap
+import NFW.NFWx as NFW
 from time import time
 
 # Bunch class for easy MPI handling
@@ -215,7 +217,7 @@ for snapnum in range(params.numfiles):
 
             if (rank == ranki) and ranki > 0:
                comm.Send(deltaii, dest=0)
-               print(deltaii)
+               #print(deltaii)
 
             if rank == 0:
 
@@ -223,7 +225,7 @@ for snapnum in range(params.numfiles):
                   print(" Rank: 0 receving slice from Rank: {}".format(ranki))
                   comm.Recv(deltaii, source=ranki)
                   # Rank 0 update the map
-                  print(deltaii)
+                  #print(deltaii)
                   deltai += deltaii
 
             comm.Barrier()
@@ -240,8 +242,11 @@ for snapnum in range(params.numfiles):
 # Everything done for the particles
 # Constructs the density maps for halos
 # and convergence maps for particles
+print("All done for uncollapsed particles PLC", rank=rank)
 if not rank:
 
+   print("Proceeding serially:")
+   print("\n++++++++++++++++++++++\n")
    if params.fovindeg < 180.0:
 
        pixels = np.arange(params.npixels)
@@ -256,6 +261,8 @@ if not rank:
 
    for z1, z2 in zip(cosmology.zlinf, cosmology.zlsup):
 
+      print("Lens plane from z=[{0:.3f},{1:.3f}]".format(z1,z2))
+
       zl = 1.0/2.0*(z1+z2)
 
       deltahi = np.zeros(params.npixels)
@@ -267,21 +274,81 @@ if not rank:
 
             plc      = rp.plc(params.pinplcfile+".{}".format(snapnum))
             groupsinplane = (plc.redshift <= z2) & (plc.redshift > z1)
+
+            if not np.any(groupsinplane):
+                continue
+
+            print(" Updating halo maps")
             pixels = hp.pixelfunc.ang2pix(hp.pixelfunc.npix2nside(params.npixels), \
-                 plc.theta[groupsinplane]*np.pi/180.0+np.pi/2.0, plc.phi[groupsinplane]*np.pi/180.0)
+            plc.theta[groupsinplane]*np.pi/180.0+np.pi/2.0, plc.phi[groupsinplane]*np.pi/180.0)
             deltahi += np.bincount(pixels, minlength=params.npixels)
-            deltai  += np.bincount(pixels, minlength=params.npixels, weights=(np.round(plc.Mass[groupsinplane]/mpart)).astype(np.float64))
+
+            print(" Computing the concentration")
+            rhoc   = cosmology.lcdm.critical_density(plc.redshift[groupsinplane]).to("M_sun/Mpc^3").value/(1+plc.redshift[groupsinplane])**3
+            rDelta = np.ascontiguousarray((3*plc.Mass[groupsinplane]/4/np.pi/200/rhoc)**(1.0/3), dtype=np.float32)
+            conc   = np.array( [cosmology.concentration.concentration( m, '200c', z, model = 'bhattacharya13') for m, z in zip(plc.Mass[groupsinplane], plc.redshift[groupsinplane])], dtype=np.float32 )
+
+            print(" Sampling particle on halos")
+            N_part = np.ascontiguousarray( np.round(plc.Mass[groupsinplane]/mpart).astype(np.int32) )
+            N_tot  = np.sum(N_part)
+
+            r      = np.empty( N_tot, dtype=np.float32 )
+            theta2 = np.empty( N_tot, dtype=np.float32 )
+            phi2   = np.empty( N_tot, dtype=np.float32 )
+
+            conv = np.pi/180.
+            NFW.random_nfw( N_part, conc, rDelta, r, theta2, phi2)
+            r_halos = np.sqrt(plc.pos[:,0][groupsinplane]**2+plc.pos[:,1][groupsinplane]**2+plc.pos[:,2][groupsinplane]**2)
+            pos_halos = np.asarray(ap.spherical_to_cartesian(r_halos, plc.theta[groupsinplane]*conv, plc.phi[groupsinplane]*conv))
+            pos_part = np.asarray(ap.spherical_to_cartesian(r, theta2 - np.pi/2.0, phi2))
+            ang_h = np.asarray(ap.cartesian_to_spherical(pos_halos[0,:], pos_halos[1,:], pos_halos[2,:]))
+            final_pos = np.repeat(pos_halos, N_part, axis=1) + pos_part
+            final_ang = np.asarray(ap.cartesian_to_spherical(final_pos[0,:], final_pos[1,:], final_pos[2,:]))
+
+            print(" Updating mass maps")
+            pixels = hp.pixelfunc.ang2pix(hp.pixelfunc.npix2nside(params.npixels), final_ang[1,:]+np.pi/2.0, final_ang[2,:])
+            deltai  += np.bincount(pixels, minlength=params.npixels)
 
       else:
 
          plc      = rp.plc(params.pinplcfile)
          groupsinplane = (plc.redshift <= z2) & (plc.redshift > z1)
+
+         if not np.any(groupsinplane):
+             continue
+
+         print(" Updating halo maps")
          pixels = hp.pixelfunc.ang2pix(hp.pixelfunc.npix2nside(params.npixels), \
          plc.theta[groupsinplane]*np.pi/180.0+np.pi/2.0, plc.phi[groupsinplane]*np.pi/180.0)
          deltahi += np.bincount(pixels, minlength=params.npixels)
-         deltai  += np.bincount(pixels, minlength=params.npixels, weights=(np.round(plc.Mass[groupsinplane]/mpart)).astype(np.float64))
 
+         print(" Computing the concentration")
+         rhoc   = cosmology.lcdm.critical_density(plc.redshift[groupsinplane]).to("M_sun/Mpc^3").value/(1+plc.redshift[groupsinplane])**3
+         rDelta = np.ascontiguousarray((3*plc.Mass[groupsinplane]/4/np.pi/200/rhoc)**(1.0/3), dtype=np.float32)
+         conc   = np.array( [cosmology.concentration.concentration( m, '200c', z, model = 'bhattacharya13') for m, z in zip(plc.Mass[groupsinplane], plc.redshift[groupsinplane])], dtype=np.float32 )
 
+         print(" Sampling particle on halos")
+         N_part = np.ascontiguousarray( np.round(plc.Mass[groupsinplane]/mpart).astype(np.int32) )
+         N_tot  = np.sum(N_part)
+
+         r      = np.empty( N_tot, dtype=np.float32 )
+         theta2 = np.empty( N_tot, dtype=np.float32 )
+         phi2   = np.empty( N_tot, dtype=np.float32 )
+         conv = np.pi/180.0
+
+         NFW.random_nfw( N_part, conc, rDelta, r, theta2, phi2)
+         r_halos = np.sqrt(plc.pos[:,0][groupsinplane]**2+plc.pos[:,1][groupsinplane]**2+plc.pos[:,2][groupsinplane]**2)
+         pos_halos = np.asarray(ap.spherical_to_cartesian(r_halos, plc.theta[groupsinplane]*conv, plc.phi[groupsinplane]*conv))
+         pos_part = np.asarray(ap.spherical_to_cartesian(r, theta2 - np.pi/2.0, phi2))
+         ang_h = np.asarray(ap.cartesian_to_spherical(pos_halos[0,:], pos_halos[1,:], pos_halos[2,:]))
+         final_pos = np.repeat(pos_halos, N_part, axis=1) + pos_part
+         final_ang = np.asarray(ap.cartesian_to_spherical(final_pos[0,:], final_pos[1,:], final_pos[2,:]))
+
+         print(" Updating mass maps")
+         pixels = hp.pixelfunc.ang2pix(hp.pixelfunc.npix2nside(params.npixels), final_ang[1,:]+np.pi/2.0, final_ang[2,:])
+         deltai  += np.bincount(pixels, minlength=params.npixels)
+
+      print(" Saving convergence, mass and halo maps")
       deltahi[~mask]  = hp.UNSEEN
       deltahi[mask] = deltahi[mask]/deltahi[mask].mean() - 1.0
       hp.fitsfunc.write_map('Maps/delta_'+params.runflag+'_halos_fullsky_{}.fits'.format(str(round(zl,4))), deltahi, overwrite=True, dtype=np.float32)
@@ -297,7 +364,10 @@ if not rank:
       kappa[mask]  += kappai[mask]
       kappai[~mask] = hp.UNSEEN
       hp.fitsfunc.write_map('Maps/kappa_'+params.runflag+'_field_fullsky_{}.fits'.format(str(round(zl,4))), kappai, overwrite=True, dtype=np.float32)
+      print("\n++++++++++++++++++++++\n")
 
+   print("Computing convergence Cl")
    cl = hp.anafast(kappa, lmax=512)
    ell = np.arange(len(cl))
    np.savetxt("Maps/Cls_kappa_z{}.txt".format(params.zsource), np.transpose([ell, cl, ell * (ell+1) * cl]))
+   print("All done!")
