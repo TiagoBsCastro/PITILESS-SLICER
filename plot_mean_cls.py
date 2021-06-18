@@ -6,7 +6,7 @@ import params
 from glob import glob
 from plot_style import *
 
-for j, name in enumerate(["lowres0", "lowres1", "lowres2", "lowres3", "lowres4", "lowres5"]):
+for j, name in enumerate(["lowres0", "lowres1", "lowres2", "lowres3", "lowres4", "lowres5", "lowres6", "lowres7", "lowres8", "lowres9"]):
 
   for i, fname in enumerate(glob("Maps/kappa_{}_*".format(name))):
 
