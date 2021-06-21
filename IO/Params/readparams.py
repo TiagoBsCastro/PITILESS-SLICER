@@ -1,5 +1,6 @@
 import re
 import numpy as np
+from IO.Utils.print import print
 
 class ParameterNotFound (Exception):
    pass
@@ -13,7 +14,7 @@ def typeArrayFromString (dtype):
     '''
     return lambda s: np.fromstring(s, dtype=dtype, sep=' ')
 
-def getValueFromFile (value,file,type):
+def getValueFromFile (value,file,type,rank=0):
     '''
     Search for a variable value inside the parameter string file and converts
     it to type
@@ -30,12 +31,12 @@ def getValueFromFile (value,file,type):
     '(\d+\.\d+\s+\d+\.\d+\s+\d+\.\d+|\d+\.+\s+\d+\.+\s+\d+\.|\d+\.\d+|\d+|\w+'
     matchedstring = re.search(r'^\s*'+value+'\s+('+typings+')',file,re.MULTILINE)
     if matchedstring == None:
-       print("The parameter", value, "was not found")
+       print("The parameter", value, "was not found",rank=rank)
        raise ParameterNotFound
     else:
        return type( matchedstring.group(1) )
 
-def checkIfBoolExists (bool,file):
+def checkIfBoolExists (bool,file,rank=0):
     '''
     Check if a boolean parameter bool is content in the string file.
     '''
@@ -47,12 +48,12 @@ def checkIfBoolExists (bool,file):
 
        if matchedstring == None:
 
-           print("Boolean option", bool, "not found")
+           print("Boolean option", bool, "not found",rank=rank)
            return False
 
        else:
 
-           print("Boolean option", bool, "found but commented.")
+           print("Boolean option", bool, "found but commented.",rank=rank)
            return False
 
     else:
@@ -69,5 +70,5 @@ def checkIfBoolExists (bool,file):
 
         else:
 
-            print("Parameter", bool, "Found but could not be interpreted as boolean!")
+            print("Parameter", bool, "Found but could not be interpreted as boolean!",rank=rank)
             raise NotBooleanParameter

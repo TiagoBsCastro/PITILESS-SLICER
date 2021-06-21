@@ -1,9 +1,9 @@
 import params
 import numpy as np
 import cosmology as cosmo
-from IO import Gadget as S
 from IO.Utils.randomization import randomizePositions, randomizeVelocities
 from IO.Utils.wrapPositions import wrapPositions
+import g3read
 import contextlib
 import sys
 
@@ -17,30 +17,6 @@ def nostdout():
     yield
     sys.stdout = save_stdout
 
-def snapPosPart(q, v1, v2, v31, v32, z, zcentered=True):
-    """
-    !!!!!!!!!!!!!!! OLD !!!!!!!!!!!!!!!
-    Returns the particles Position at z
-    !!!!!!!!!!!!!!! OLD !!!!!!!!!!!!!!!
-    """
-    thisa   = 1.0 / (1.0 + z)
-    thisD   = np.interp(thisa, cosmo.a, cosmo.D)
-    thisD2  = np.interp(thisa, cosmo.a, cosmo.D2)
-    thisD31 = np.interp(thisa, cosmo.a, cosmo.D31)
-    thisD32 = np.interp(thisa, cosmo.a, cosmo.D32)
-
-    xx, yy, zz = q + Cell * (thisD * v1 + thisD2 * v2 + thisD31 * v31 + thisD32 * v32)
-
-    if zcentered:
-        xx = (wrapPositionsPart(xx / Lbox) - 0.5) * Lbox
-        yy = (wrapPositionsPart(yy / Lbox) - 0.5) * Lbox
-        zz = wrapPositionsPart(zz / Lbox) * Lbox
-    else:
-        xx = (wrapPositionsPart(xx / Lbox) - 0.5) * Lbox
-        yy = (wrapPositionsPart(yy / Lbox) - 0.5) * Lbox
-        zz = (wrapPositionsPart(zz / Lbox) - 0.5) * Lbox
-    return (xx, yy, zz)
-
 ########################## Timeless Snapshot ############################
 
 class timeless_snapshot:
@@ -49,17 +25,24 @@ class timeless_snapshot:
 
         with nostdout():
 
-           self.snap  = S.Init(pintlessfile, snapnum)
-           self.ID    = self.snap.read_block('ID'  , onlythissnap=True)
-           self.V1    = self.snap.read_block('VZEL', onlythissnap=True)
-           self.V2    = self.snap.read_block('V2'  , onlythissnap=True)
-           self.V31   = self.snap.read_block('V3_1', onlythissnap=True)
-           self.V32   = self.snap.read_block('V3_2', onlythissnap=True)
-           self.Zacc  = self.snap.read_block('ZACC', onlythissnap=True)
+           if snapnum == -1:
+
+               fname = pintlessfile
+
+           else:
+
+               fname = pintlessfile+"{}".format(snapnum)
+
+           self.ID    = g3read.read_new(fname, 'ID  ', 1)
+           self.V1    = g3read.read_new(fname, 'VZEL', 1)
+           self.V2    = g3read.read_new(fname, 'V2  ', 1)
+           self.V31   = g3read.read_new(fname, 'V3_1', 1)
+           self.V32   = g3read.read_new(fname, 'V3_2', 1)
+           self.Zacc  = g3read.read_new(fname, 'ZACC', 1)
            self.Npart = self.ID.size
 
         self.NG    = np.int(np.float(params.nparticles)**(1./3.)+0.5)
-        self.Lbox  = self.snap.Header.boxsize
+        self.Lbox  = g3read.GadgetFile(fname, is_snap=False).header.BoxSize
         self.Cell  = self.Lbox/float(self.NG)
 
         face = 1
