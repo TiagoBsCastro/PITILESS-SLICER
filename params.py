@@ -5,6 +5,7 @@ import os
 import numpy as np
 import sys
 from hmf.density_field.transfer_models import EH_BAO, CAMB
+from scipy.linalg import inv
 
 # MPI comunicatior, rank and size of procs
 comm = MPI.COMM_WORLD
@@ -28,7 +29,7 @@ cmmodel = 'colossus' # 'bhattacharya' or 'colossus'
 ################## Past Light Cone Parameters #################
 ###############################################################
 
-npixels       = 12*2**24
+npixels       = 12*2**20
 zsource       = 0.3
 nlensperbox   = 0
 lensthickness = 250  # Only used if nlensperbox == 0
@@ -42,8 +43,8 @@ optimizer     = 'NewtonRaphson'
 #### Reads the parameters from Pinocchio's parameters file ####
 ###############################################################
 
-paramfilename = "/beegfs/tcastro/TestRuns/lowres2/parameter_file"
-directoryname = "/beegfs/tcastro/TestRuns/lowres2/"
+paramfilename = "/beegfs/tcastro/TestRuns/lowres1/parameter_file"
+directoryname = "/beegfs/tcastro/TestRuns/lowres1/"
 rotatebox     = True
 
 ###############################################################
@@ -156,7 +157,7 @@ if os.path.isfile(paramfilename):
               plcx /= np.sqrt( (plcx**2).sum() )
               plcy  = np.cross(plcaxis, plcx)
 
-          change_of_basis = np.transpose([plcx,plcy, plcaxis])
+          change_of_basis = np.transpose([plcx, plcy, plcaxis])
 
       else:
 

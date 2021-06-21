@@ -77,7 +77,7 @@ for snapnum in range(params.numfiles):
    aplcslice = np.empty(npart//size, dtype = np.float32)
    skycoordslice = np.empty((npart//size, 3), dtype = np.float32)
 
-   comm.Scatterv(ts.qPos, qPosslice,root=0); qPosslice -= 0.5;# Re-centering the snapshot on [0.5, 0.5, 0.5]
+   comm.Scatterv(ts.qPos, qPosslice,root=0); qPosslice -= np.array([0.5, 0.5, 0.5]).dot(params.change_of_basis);# Re-centering the snapshot on [0.5, 0.5, 0.5]
    comm.Scatterv(ts.V1  ,V1slice   ,root=0)
    comm.Scatterv(ts.V2  ,V2slice   ,root=0)
    comm.Scatterv(ts.V31 ,V31slice  ,root=0)
@@ -87,7 +87,7 @@ for snapnum in range(params.numfiles):
    del ts
 
    if not rank:
-      print("\n++++++++++++++++++++++\n")
+      print("++++++++++++++++++++++\n")
 
    for i,(z1,z2) in enumerate( zip(cosmology.zlinf, cosmology.zlsup) ):
 
@@ -159,22 +159,22 @@ for snapnum in range(params.numfiles):
          aplcslicei[ Zaccslice == -1 ] = 1.0
 
          # Position shift of the replication
-         shift = np.array(repi[['x','y','z']].tolist()).dot(params.change_of_basis)
+         shift = (np.array(repi[['x','y','z']].tolist()).dot(params.change_of_basis)).astype(np.float32)
          # Get the scale parameter of the moment that the particle crossed the PLC
          if not rank:
              t0 = time()
          if params.optimizer == "NewtonRaphson":
-             builder.getCrossingScaleParameterNewtonRaphson (qPosslice + shift.astype(np.float32), V1slice, V2slice,\
-                                                         V31slice, V32slice, aplcslicei, npart//size, DPLC, D, D2,\
-                                                         D31, D32, params.norder, amin, amax)
+             builder.getCrossingScaleParameterNewtonRaphson (qPosslice + shift, V1slice, V2slice,\
+                                                             V31slice, V32slice, aplcslicei, npart//size, DPLC, D, D2,\
+                                                             D31, D32, params.norder, amin, amax)
          elif params.optimizer == "Bisection":
-             builder.getCrossingScaleParameterBissection (qPosslice + shift.astype(np.float32), V1slice, V2slice,\
+             builder.getCrossingScaleParameterBissection (qPosslice + shift, V1slice, V2slice,\
                                                          V31slice, V32slice, aplcslicei, npart//size, DPLC, D, D2,\
                                                          D31, D32, params.norder, amin, amax)
          elif params.optimizer == "Fast":
-             builder.getCrossingScaleParameterFast (qPosslice + shift.astype(np.float32), V1slice, V2slice,\
-                                                         V31slice, V32slice, aplcslicei, npart//size, DPLC, D, D2,\
-                                                         D31, D32, params.norder, amin, amax)
+             builder.getCrossingScaleParameterFast (qPosslice + shift, V1slice, V2slice,\
+                                                    V31slice, V32slice, aplcslicei, npart//size, DPLC, D, D2,\
+                                                    D31, D32, params.norder, amin, amax)
          else:
 
              raise NotImplementedError("Optimizer {} is not implemented!".format(params.optimizer))
@@ -188,7 +188,7 @@ for snapnum in range(params.numfiles):
 
          if not rank:
              t1 = time()
-         builder.getSkyCoordinates(qPosslice, shift.astype(np.float32), V1slice, V2slice, V31slice, V32slice, aplcslicei,\
+         builder.getSkyCoordinates(qPosslice, shift, V1slice, V2slice, V31slice, V32slice, aplcslicei,\
                                                                  skycoordslice,npart//size, D, D2, D31, D32, params.norder)
 
          cut = skycoordslice[:,0] > 0
@@ -235,7 +235,7 @@ for snapnum in range(params.numfiles):
       if rank == 0:
          # Rank 0 writes the collected map
          hp.fitsfunc.write_map('Maps/delta_'+params.runflag+'_field_fullsky_{}.fits'.format(str(round(zl,4))), deltai, overwrite=True, dtype=np.int64)
-         print("\n++++++++++++++++++++++\n")
+         print("++++++++++++++++++++++\n")
 
       comm.Barrier()
 
@@ -246,7 +246,7 @@ print("All done for uncollapsed particles PLC", rank=rank)
 if not rank:
 
    print("Proceeding serially:")
-   print("\n++++++++++++++++++++++\n")
+   print("++++++++++++++++++++++\n")
    if params.fovindeg < 180.0:
 
        pixels = np.arange(params.npixels)
@@ -314,39 +314,38 @@ if not rank:
          plc      = rp.plc(params.pinplcfile)
          groupsinplane = (plc.redshift <= z2) & (plc.redshift > z1)
 
-         if not np.any(groupsinplane):
-             continue
+         if np.any(groupsinplane):
 
-         print(" Updating halo maps")
-         pixels = hp.pixelfunc.ang2pix(hp.pixelfunc.npix2nside(params.npixels), \
-         plc.theta[groupsinplane]*np.pi/180.0+np.pi/2.0, plc.phi[groupsinplane]*np.pi/180.0)
-         deltahi += np.bincount(pixels, minlength=params.npixels)
+             print(" Updating halo maps")
+             pixels = hp.pixelfunc.ang2pix(hp.pixelfunc.npix2nside(params.npixels), \
+             plc.theta[groupsinplane]*np.pi/180.0+np.pi/2.0, plc.phi[groupsinplane]*np.pi/180.0)
+             deltahi += np.bincount(pixels, minlength=params.npixels)
 
-         print(" Computing the concentration")
-         rhoc   = cosmology.lcdm.critical_density(plc.redshift[groupsinplane]).to("M_sun/Mpc^3").value/(1+plc.redshift[groupsinplane])**3
-         rDelta = np.ascontiguousarray((3*plc.Mass[groupsinplane]/4/np.pi/200/rhoc)**(1.0/3), dtype=np.float32)
-         conc   = np.array( [cosmology.concentration.concentration( m, '200c', z, model = 'bhattacharya13') for m, z in zip(plc.Mass[groupsinplane], plc.redshift[groupsinplane])], dtype=np.float32 )
+             print(" Computing the concentration")
+             rhoc   = cosmology.lcdm.critical_density(plc.redshift[groupsinplane]).to("M_sun/Mpc^3").value/(1+plc.redshift[groupsinplane])**3
+             rDelta = np.ascontiguousarray((3*plc.Mass[groupsinplane]/4/np.pi/200/rhoc)**(1.0/3), dtype=np.float32)
+             conc   = np.array( [cosmology.concentration.concentration( m, '200c', z, model = 'bhattacharya13') for m, z in zip(plc.Mass[groupsinplane], plc.redshift[groupsinplane])], dtype=np.float32 )
 
-         print(" Sampling particle on halos")
-         N_part = np.ascontiguousarray( np.round(plc.Mass[groupsinplane]/mpart).astype(np.int32) )
-         N_tot  = np.sum(N_part)
+             print(" Sampling particle on halos")
+             N_part = np.ascontiguousarray( np.round(plc.Mass[groupsinplane]/mpart).astype(np.int32) )
+             N_tot  = np.sum(N_part)
 
-         r      = np.empty( N_tot, dtype=np.float32 )
-         theta2 = np.empty( N_tot, dtype=np.float32 )
-         phi2   = np.empty( N_tot, dtype=np.float32 )
-         conv = np.pi/180.0
+             r      = np.empty( N_tot, dtype=np.float32 )
+             theta2 = np.empty( N_tot, dtype=np.float32 )
+             phi2   = np.empty( N_tot, dtype=np.float32 )
+             conv = np.pi/180.0
 
-         NFW.random_nfw( N_part, conc, rDelta, r, theta2, phi2)
-         r_halos = np.sqrt(plc.pos[:,0][groupsinplane]**2+plc.pos[:,1][groupsinplane]**2+plc.pos[:,2][groupsinplane]**2)
-         pos_halos = np.asarray(ap.spherical_to_cartesian(r_halos, plc.theta[groupsinplane]*conv, plc.phi[groupsinplane]*conv))
-         pos_part = np.asarray(ap.spherical_to_cartesian(r, theta2 - np.pi/2.0, phi2))
-         ang_h = np.asarray(ap.cartesian_to_spherical(pos_halos[0,:], pos_halos[1,:], pos_halos[2,:]))
-         final_pos = np.repeat(pos_halos, N_part, axis=1) + pos_part
-         final_ang = np.asarray(ap.cartesian_to_spherical(final_pos[0,:], final_pos[1,:], final_pos[2,:]))
+             NFW.random_nfw( N_part, conc, rDelta, r, theta2, phi2)
+             r_halos = np.sqrt(plc.pos[:,0][groupsinplane]**2+plc.pos[:,1][groupsinplane]**2+plc.pos[:,2][groupsinplane]**2)
+             pos_halos = np.asarray(ap.spherical_to_cartesian(r_halos, plc.theta[groupsinplane]*conv, plc.phi[groupsinplane]*conv))
+             pos_part = np.asarray(ap.spherical_to_cartesian(r, theta2 - np.pi/2.0, phi2))
+             ang_h = np.asarray(ap.cartesian_to_spherical(pos_halos[0,:], pos_halos[1,:], pos_halos[2,:]))
+             final_pos = np.repeat(pos_halos, N_part, axis=1) + pos_part
+             final_ang = np.asarray(ap.cartesian_to_spherical(final_pos[0,:], final_pos[1,:], final_pos[2,:]))
 
-         print(" Updating mass maps")
-         pixels = hp.pixelfunc.ang2pix(hp.pixelfunc.npix2nside(params.npixels), final_ang[1,:]+np.pi/2.0, final_ang[2,:])
-         deltai  += np.bincount(pixels, minlength=params.npixels)
+             print(" Updating mass maps")
+             pixels = hp.pixelfunc.ang2pix(hp.pixelfunc.npix2nside(params.npixels), final_ang[1,:]+np.pi/2.0, final_ang[2,:])
+             deltai  += np.bincount(pixels, minlength=params.npixels)
 
       print(" Saving convergence, mass and halo maps")
       deltahi[~mask]  = hp.UNSEEN
@@ -364,7 +363,7 @@ if not rank:
       kappa[mask]  += kappai[mask]
       kappai[~mask] = hp.UNSEEN
       hp.fitsfunc.write_map('Maps/kappa_'+params.runflag+'_field_fullsky_{}.fits'.format(str(round(zl,4))), kappai, overwrite=True, dtype=np.float32)
-      print("\n++++++++++++++++++++++\n")
+      print("++++++++++++++++++++++\n")
 
    print("Computing convergence Cl")
    cl = hp.anafast(kappa, lmax=512)
