@@ -72,4 +72,4 @@ def randomizeVelocities (face, sgn, vel):
       yy = yb
       zz = xb
 
-   return np.transpose([xx, yy, zz])
+   return np.asfortranarray([xx, yy, zz], dtype=np.float32).T

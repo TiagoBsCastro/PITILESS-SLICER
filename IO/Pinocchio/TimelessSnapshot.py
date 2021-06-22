@@ -41,7 +41,7 @@ class timeless_snapshot:
            self.Zacc  = g3read.read_new(fname, 'ZACC', 1)
            self.Npart = self.ID.size
 
-        self.NG    = np.int(np.float(params.nparticles)**(1./3.)+0.5)
+        self.NG    = params.ngrid
         self.Lbox  = g3read.GadgetFile(fname, is_snap=False).header.BoxSize
         self.Cell  = self.Lbox/float(self.NG)
 

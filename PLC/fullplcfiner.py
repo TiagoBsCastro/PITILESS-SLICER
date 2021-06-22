@@ -87,7 +87,7 @@ for snapnum in range(params.numfiles):
    del ts
 
    if not rank:
-      print("++++++++++++++++++++++\n")
+      print( "\n", "++++++++++++++++++++++", "\n")
 
    for i,(z1,z2) in enumerate( zip(cosmology.zlinf, cosmology.zlsup) ):
 
@@ -192,9 +192,9 @@ for snapnum in range(params.numfiles):
                                                                  skycoordslice,npart//size, D, D2, D31, D32, params.norder)
 
          cut = skycoordslice[:,0] > 0
-         theta, phi = skycoordslice[:,1][cut] + np.pi/2.0, skycoordslice[:,2][cut]
-         phi    = phi[np.pi - theta <= params.fovinradians]
-         theta  = theta[np.pi - theta <= params.fovinradians]
+         theta, phi = np.pi/2.0 - skycoordslice[:,1][cut], skycoordslice[:,2][cut]
+         phi    = phi[theta <= params.fovinradians]
+         theta  = theta[theta <= params.fovinradians]
          pixels = hp.pixelfunc.ang2pix(hp.pixelfunc.npix2nside(params.npixels), theta, phi)
          if rank:
 
@@ -235,7 +235,7 @@ for snapnum in range(params.numfiles):
       if rank == 0:
          # Rank 0 writes the collected map
          hp.fitsfunc.write_map('Maps/delta_'+params.runflag+'_field_fullsky_{}.fits'.format(str(round(zl,4))), deltai, overwrite=True, dtype=np.int64)
-         print("++++++++++++++++++++++\n")
+         print( "\n", "++++++++++++++++++++++", "\n")
 
       comm.Barrier()
 
@@ -246,12 +246,12 @@ print("All done for uncollapsed particles PLC", rank=rank)
 if not rank:
 
    print("Proceeding serially:")
-   print("++++++++++++++++++++++\n")
+   print( "\n", "++++++++++++++++++++++", "\n")
    if params.fovindeg < 180.0:
 
        pixels = np.arange(params.npixels)
        mask   = hp.pix2ang( hp.pixelfunc.npix2nside(params.npixels), pixels)[0] * 180.0/np.pi
-       mask   = (mask >= 180.0 - params.fovindeg)
+       mask   = (mask <= params.fovindeg)
 
    else:
 
@@ -280,7 +280,7 @@ if not rank:
 
             print(" Updating halo maps")
             pixels = hp.pixelfunc.ang2pix(hp.pixelfunc.npix2nside(params.npixels), \
-            plc.theta[groupsinplane]*np.pi/180.0+np.pi/2.0, plc.phi[groupsinplane]*np.pi/180.0)
+                                          np.pi/2.0 - plc.theta[groupsinplane]*np.pi/180.0, plc.phi[groupsinplane]*np.pi/180.0)
             deltahi += np.bincount(pixels, minlength=params.npixels)
 
             print(" Computing the concentration")
@@ -318,7 +318,7 @@ if not rank:
 
              print(" Updating halo maps")
              pixels = hp.pixelfunc.ang2pix(hp.pixelfunc.npix2nside(params.npixels), \
-             plc.theta[groupsinplane]*np.pi/180.0+np.pi/2.0, plc.phi[groupsinplane]*np.pi/180.0)
+                                           np.pi/2.0 - plc.theta[groupsinplane]*np.pi/180.0, plc.phi[groupsinplane]*np.pi/180.0)
              deltahi += np.bincount(pixels, minlength=params.npixels)
 
              print(" Computing the concentration")
@@ -337,14 +337,13 @@ if not rank:
 
              NFW.random_nfw( N_part, conc, rDelta, r, theta2, phi2)
              r_halos = np.sqrt(plc.pos[:,0][groupsinplane]**2+plc.pos[:,1][groupsinplane]**2+plc.pos[:,2][groupsinplane]**2)
-             pos_halos = np.asarray(ap.spherical_to_cartesian(r_halos, plc.theta[groupsinplane]*conv, plc.phi[groupsinplane]*conv))
-             pos_part = np.asarray(ap.spherical_to_cartesian(r, theta2 - np.pi/2.0, phi2))
-             ang_h = np.asarray(ap.cartesian_to_spherical(pos_halos[0,:], pos_halos[1,:], pos_halos[2,:]))
+             pos_halos = ap.spherical_to_cartesian(r_halos, plc.theta[groupsinplane]*conv, plc.phi[groupsinplane]*conv)
+             pos_part  = ap.spherical_to_cartesian(r, np.pi/2 - theta2, phi2)
              final_pos = np.repeat(pos_halos, N_part, axis=1) + pos_part
              final_ang = np.asarray(ap.cartesian_to_spherical(final_pos[0,:], final_pos[1,:], final_pos[2,:]))
 
              print(" Updating mass maps")
-             pixels = hp.pixelfunc.ang2pix(hp.pixelfunc.npix2nside(params.npixels), final_ang[1,:]+np.pi/2.0, final_ang[2,:])
+             pixels = hp.pixelfunc.ang2pix(hp.pixelfunc.npix2nside(params.npixels), np.pi/2 - final_ang[1,:], final_ang[2,:])
              deltai  += np.bincount(pixels, minlength=params.npixels)
 
       print(" Saving convergence, mass and halo maps")
@@ -363,7 +362,7 @@ if not rank:
       kappa[mask]  += kappai[mask]
       kappai[~mask] = hp.UNSEEN
       hp.fitsfunc.write_map('Maps/kappa_'+params.runflag+'_field_fullsky_{}.fits'.format(str(round(zl,4))), kappai, overwrite=True, dtype=np.float32)
-      print("++++++++++++++++++++++\n")
+      print( "\n", "++++++++++++++++++++++", "\n")
 
    print("Computing convergence Cl")
    cl = hp.anafast(kappa, lmax=512)

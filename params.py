@@ -43,9 +43,9 @@ optimizer     = 'NewtonRaphson'
 #### Reads the parameters from Pinocchio's parameters file ####
 ###############################################################
 
-paramfilename = "/beegfs/tcastro/TestRuns/lowres1/parameter_file"
-directoryname = "/beegfs/tcastro/TestRuns/lowres1/"
-rotatebox     = True
+paramfilename = "/beegfs/tcastro/TestRuns/lowres0/parameter_file"
+directoryname = "/beegfs/tcastro/TestRuns/lowres0/"
+rotatebox     = False
 
 ###############################################################
 ########### Under the Hood from this point Forward ############
@@ -157,7 +157,7 @@ if os.path.isfile(paramfilename):
               plcx /= np.sqrt( (plcx**2).sum() )
               plcy  = np.cross(plcaxis, plcx)
 
-          change_of_basis = np.transpose([plcx, plcy, plcaxis])
+          change_of_basis = inv([plcx, plcy, plcaxis])
 
       else:
 

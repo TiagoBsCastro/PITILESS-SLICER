@@ -1,6 +1,5 @@
 from libc.math cimport sin, cos, asin, acos, atan2, pi, sqrt, fabs
 cimport cython
-cdef int _WRAP_POSITIONS = False
 
 cdef void func(float *q, float *v1, float *v2, float *v31, float *v32, float *d
                  , float *d2, float *d31, float *d32, float *dplc, float a, int norder, float *f, float *df) nogil:
@@ -64,18 +63,7 @@ cpdef void getCartesianCoordinates (float [:,:] qPos, float[:] replication, floa
                         fpij += (V1[i,j]*D[k] + V2[i,j]*D2[k] + V31[i,j]*D31[k] + V32[i,j]*D32[k])*ak
                         ak   *= a[i]
 
-                    if _WRAP_POSITIONS:
-
-                        if fpij > 0.5:
-                            x[j] = fpij - 1.0 + replication[j]
-                        elif fpij < -0.5:
-                            x[j] = 1.0 - fpij + replication[j]
-                        else:
-                            x[j] = fpij + replication[j]
-
-                    else:
-
-                        x[j] = fpij + replication[j]
+                    x[j] = fpij + replication[j]
 
                 coord[i,0] = x[0]
                 coord[i,1] = x[1]
@@ -110,22 +98,11 @@ cpdef void getSkyCoordinates (float [:,:] qPos, float[:] replication, float [:,:
                         fpij += (V1[i,j]*D[k] + V2[i,j]*D2[k] + V31[i,j]*D31[k] + V32[i,j]*D32[k])*ak
                         ak   *= a[i]
 
-                    if _WRAP_POSITIONS:
-
-                        if fpij > 0.5:
-                            x[j] = fpij - 1.0 + replication[j]
-                        elif fpij < -0.5:
-                            x[j] = 1.0 - fpij + replication[j]
-                        else:
-                            x[j] = fpij + replication[j]
-
-                    else:
-
-                        x[j] = fpij + replication[j]
+                    x[j] = fpij + replication[j]
 
                 coord[i,0] = sqrt(x[0]*x[0]+x[1]*x[1]+x[2]*x[2])
                 coord[i,1] = -acos(x[2]/coord[i,0]) + pi/2.0;
-                coord[i,2] = atan2(x[1],x[0]) - pi;
+                coord[i,2] = atan2(x[1],x[0]);
 
                 if coord[i,2] < 0:
 
