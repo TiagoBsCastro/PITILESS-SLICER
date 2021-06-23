@@ -87,7 +87,7 @@ for snapnum in range(params.numfiles):
    del ts
 
    if not rank:
-      print( "\n", "++++++++++++++++++++++", "\n")
+      print("++++++++++++++++++++++")
 
    for i,(z1,z2) in enumerate( zip(cosmology.zlinf, cosmology.zlsup) ):
 
@@ -235,7 +235,7 @@ for snapnum in range(params.numfiles):
       if rank == 0:
          # Rank 0 writes the collected map
          hp.fitsfunc.write_map('Maps/delta_'+params.runflag+'_field_fullsky_{}.fits'.format(str(round(zl,4))), deltai, overwrite=True, dtype=np.int64)
-         print( "\n", "++++++++++++++++++++++", "\n")
+         print("++++++++++++++++++++++")
 
       comm.Barrier()
 
@@ -246,7 +246,7 @@ print("All done for uncollapsed particles PLC", rank=rank)
 if not rank:
 
    print("Proceeding serially:")
-   print( "\n", "++++++++++++++++++++++", "\n")
+   print("++++++++++++++++++++++")
    if params.fovindeg < 180.0:
 
        pixels = np.arange(params.npixels)
@@ -347,8 +347,8 @@ if not rank:
              deltai  += np.bincount(pixels, minlength=params.npixels)
 
       print(" Saving convergence, mass and halo maps")
-      deltahi[~mask]  = hp.UNSEEN
-      deltahi[mask] = deltahi[mask]/deltahi[mask].mean() - 1.0
+      deltahi[~mask] = hp.UNSEEN
+      deltahi[mask]  = deltahi[mask]/deltahi[mask].mean() - 1.0
       hp.fitsfunc.write_map('Maps/delta_'+params.runflag+'_halos_fullsky_{}.fits'.format(str(round(zl,4))), deltahi, overwrite=True, dtype=np.float32)
 
       deltai[~mask]  = hp.UNSEEN
@@ -362,7 +362,7 @@ if not rank:
       kappa[mask]  += kappai[mask]
       kappai[~mask] = hp.UNSEEN
       hp.fitsfunc.write_map('Maps/kappa_'+params.runflag+'_field_fullsky_{}.fits'.format(str(round(zl,4))), kappai, overwrite=True, dtype=np.float32)
-      print( "\n", "++++++++++++++++++++++", "\n")
+      print("++++++++++++++++++++++")
 
    print("Computing convergence Cl")
    cl = hp.anafast(kappa, lmax=512)

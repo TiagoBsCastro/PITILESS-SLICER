@@ -224,7 +224,7 @@ if params.fovindeg < 180.0:
 
         for point in _surface + rep:
 
-            theta = np.arccos(point.dot(params.change_of_basis[2])/np.linalg.norm(point))
+            theta = np.arccos(point.dot(params.change_of_basis)[2]/np.linalg.norm(point))
             if theta < 0:
                 theta += np.pi/2.0
 

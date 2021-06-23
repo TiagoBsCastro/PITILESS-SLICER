@@ -48,13 +48,7 @@ class timeless_snapshot:
         face = 1
         sgn  = [1, 1, 1]
         # Recentering the box
-        if params.rotatebox:
-
-            self.qPos = np.array([ ((self.ID-1)//self.NG**2)%self.NG , ((self.ID-1)//self.NG)%self.NG, (self.ID-1)%self.NG]).transpose() * self.Cell + self.Cell/2.
-
-        else:
-
-            self.qPos = np.array([ (self.ID-1)%self.NG,((self.ID-1)//self.NG)%self.NG,\
+        self.qPos = np.array([ (self.ID-1)%self.NG,((self.ID-1)//self.NG)%self.NG,\
                                   ((self.ID-1)//self.NG**2)%self.NG ]).transpose() * self.Cell + self.Cell/2.
 
         self.qPos = randomizePositions(params.plccenter, face, sgn, self.qPos/self.Lbox)
