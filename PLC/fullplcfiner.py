@@ -227,7 +227,6 @@ for snapnum in range(params.numfiles):
                   print(" Rank: 0 receving slice from Rank: {}".format(ranki))
                   comm.Recv(deltaii, source=ranki)
                   # Rank 0 update the map
-                  #print(deltaii)
                   deltai += deltaii
 
             comm.Barrier()
