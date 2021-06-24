@@ -23,7 +23,7 @@ TCMB = 2.7255 # Only used if IC Pk was given by camb
 ######################### C-M Parameters ######################
 ###############################################################
 
-cmmodel = 'colossus' # 'bhattacharya' or 'colossus'
+cmmodel = 'diemer19' # colossus models: https://bdiemer.bitbucket.io/colossus/halo_concentration.html
 
 ###############################################################
 ################## Past Light Cone Parameters #################
@@ -43,8 +43,8 @@ optimizer     = 'NewtonRaphson'
 #### Reads the parameters from Pinocchio's parameters file ####
 ###############################################################
 
-paramfilename = "/beegfs/tcastro/TestRuns/lowres0/parameter_file"
-directoryname = "/beegfs/tcastro/TestRuns/lowres0/"
+paramfilename = "/beegfs/tcastro/TestRuns/lowres1/parameter_file"
+directoryname = "/beegfs/tcastro/TestRuns/lowres1/"
 
 ###############################################################
 ########### Under the Hood from this point Forward ############

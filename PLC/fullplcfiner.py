@@ -200,38 +200,23 @@ for snapnum in range(params.numfiles):
          pixels = hp.pixelfunc.ang2pix(hp.pixelfunc.npix2nside(params.npixels), theta, phi)
          if rank:
 
+           reduce  = None
            deltaii = np.bincount(pixels, minlength=params.npixels).astype(np.int64)
 
          else:
 
            print(" Rank: 0 working on its own load.")
-           deltaii = np.empty_like(deltai)
-           deltai += np.bincount(pixels, minlength=params.npixels).astype(np.int64)
 
-         del theta, phi, cut, pixels
+           deltaii = np.bincount(pixels, minlength=params.npixels).astype(np.int64)
+           reduce  = np.zeros_like(deltaii)
+
+         # use MPI to get the totals
+         comm.Reduce( [deltaii, MPI.INT64_T], [reduce, MPI.INT64_T], op = MPI.SUM, root = 0 )
 
          if not rank:
              t1 -= time()
+             deltai += reduce
              print(" Rank: 0 spent {0:4.3f}s for getting the PLC crossing and {1:4.3f}s for computing the sky coordinates.".format(-t0, -t1))
-
-         # Collect data from the other ranks
-         for ranki in range(size):
-
-            if (rank == ranki) and ranki > 0:
-               comm.Send(deltaii, dest=0)
-               #print(deltaii)
-
-            if rank == 0:
-
-               if ranki:
-                  print(" Rank: 0 receving slice from Rank: {}".format(ranki))
-                  comm.Recv(deltaii, source=ranki)
-                  # Rank 0 update the map
-                  deltai += deltaii
-
-            comm.Barrier()
-
-         del deltaii
 
       if rank == 0:
          # Rank 0 writes the collected map
@@ -287,7 +272,7 @@ if not rank:
             print(" Computing the concentration")
             rhoc   = cosmology.lcdm.critical_density(plc.redshift[groupsinplane]).to("M_sun/Mpc^3").value/(1+plc.redshift[groupsinplane])**3
             rDelta = np.ascontiguousarray((3*plc.Mass[groupsinplane]/4/np.pi/200/rhoc)**(1.0/3), dtype=np.float32)
-            conc   = np.array( [cosmology.concentration.concentration( m, '200c', z, model = 'bhattacharya13') for m, z in zip(plc.Mass[groupsinplane], plc.redshift[groupsinplane])], dtype=np.float32 )
+            conc   = np.array( [cosmology.concentration.concentration( m, '200c', z, model = params.cmmodel) for m, z in zip(plc.Mass[groupsinplane], plc.redshift[groupsinplane])], dtype=np.float32 )
 
             print(" Sampling particle on halos")
             N_part = np.ascontiguousarray( np.round(plc.Mass[groupsinplane]/mpart).astype(np.int32) )
@@ -325,7 +310,7 @@ if not rank:
              print(" Computing the concentration")
              rhoc   = cosmology.lcdm.critical_density(plc.redshift[groupsinplane]).to("M_sun/Mpc^3").value/(1+plc.redshift[groupsinplane])**3
              rDelta = np.ascontiguousarray((3*plc.Mass[groupsinplane]/4/np.pi/200/rhoc)**(1.0/3), dtype=np.float32)
-             conc   = np.array( [cosmology.concentration.concentration( m, '200c', z, model = 'bhattacharya13') for m, z in zip(plc.Mass[groupsinplane], plc.redshift[groupsinplane])], dtype=np.float32 )
+             conc   = np.array( [cosmology.concentration.concentration( m, '200c', z, model = params.cmmodel) for m, z in zip(plc.Mass[groupsinplane], plc.redshift[groupsinplane])], dtype=np.float32 )
 
              print(" Sampling particle on halos")
              N_part = np.ascontiguousarray( np.round(plc.Mass[groupsinplane]/mpart).astype(np.int32) )
