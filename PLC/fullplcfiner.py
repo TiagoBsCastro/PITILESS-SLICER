@@ -22,6 +22,17 @@ comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 size = comm.Get_size()
 
+if rank == 0:
+
+    print("Rank 0 is Working on the Geometry!")
+    from PLC.geometry import geometry
+
+else:
+
+   geometry = None
+
+geometry = comm.bcast(geometry)
+
 # Check if the simplistic work balance will do
 if (params.nparticles/params.numfiles)%size:
 
@@ -35,9 +46,6 @@ mpart = (2.7753663e11 * params.omega0 * params.boxsize ** 3)/params.nparticles
 for snapnum in range(params.numfiles):
 
    if rank == 0:
-
-       print("Rank 0 is Working on the Geometry!")
-       from PLC.geometry import geometry
 
        print("Rank 0 is reading the data! {}/{}".format(snapnum+1, params.numfiles))
        if params.numfiles == 1:
@@ -54,12 +62,6 @@ for snapnum in range(params.numfiles):
        except FileExistsError:
 
            pass
-
-   else:
-
-      geometry = None
-
-   geometry = comm.bcast(geometry)
 
    ###################################################
 
@@ -299,14 +301,14 @@ if not rank:
             conv = np.pi/180.
             NFW.random_nfw( N_part, conc, rDelta, r, theta2, phi2)
             r_halos = np.sqrt(plc.pos[:,0][groupsinplane]**2+plc.pos[:,1][groupsinplane]**2+plc.pos[:,2][groupsinplane]**2)
-            pos_halos = np.asarray(ap.spherical_to_cartesian(r_halos, plc.theta[groupsinplane]*conv, plc.phi[groupsinplane]*conv))
-            pos_part = np.asarray(ap.spherical_to_cartesian(r, theta2 - np.pi/2.0, phi2))
-            ang_h = np.asarray(ap.cartesian_to_spherical(pos_halos[0,:], pos_halos[1,:], pos_halos[2,:]))
-            final_pos = np.repeat(pos_halos, N_part, axis=1) + pos_part
-            final_ang = np.asarray(ap.cartesian_to_spherical(final_pos[0,:], final_pos[1,:], final_pos[2,:]))
+            pos_halos = np.transpose(ap.spherical_to_cartesian(r_halos, plc.theta[groupsinplane]*conv, plc.phi[groupsinplane]*conv))
+            pos_part  = np.transpose(ap.spherical_to_cartesian(r, np.pi/2.0-theta2, phi2))
+            ang_h     = np.transpose(ap.cartesian_to_spherical(pos_halos[:, 0], pos_halos[:, 1], pos_halos[:, 2]))
+            final_pos = np.repeat(pos_halos, N_part, axis=0) + pos_part
+            final_ang = np.transpose(ap.cartesian_to_spherical(final_pos[:, 0], final_pos[:, 1], final_pos[:, 2]))
 
             print(" Updating mass maps")
-            pixels = hp.pixelfunc.ang2pix(hp.pixelfunc.npix2nside(params.npixels), final_ang[1,:]+np.pi/2.0, final_ang[2,:])
+            pixels = hp.pixelfunc.ang2pix(hp.pixelfunc.npix2nside(params.npixels), np.pi/2.0-final_ang[:, 1], final_ang[:, 2])
             deltai  += np.bincount(pixels, minlength=params.npixels)
 
       else:
@@ -337,14 +339,14 @@ if not rank:
 
              NFW.random_nfw( N_part, conc, rDelta, r, theta2, phi2)
              r_halos = np.sqrt(plc.pos[:,0][groupsinplane]**2+plc.pos[:,1][groupsinplane]**2+plc.pos[:,2][groupsinplane]**2)
-             pos_halos = ap.spherical_to_cartesian(r_halos, plc.theta[groupsinplane]*conv, plc.phi[groupsinplane]*conv)
-             pos_part  = ap.spherical_to_cartesian(r, np.pi/2 - theta2, phi2)
-             final_pos = np.repeat(pos_halos, N_part, axis=1) + pos_part
-             final_ang = np.asarray(ap.cartesian_to_spherical(final_pos[0,:], final_pos[1,:], final_pos[2,:]))
+             pos_halos = np.transpose( ap.spherical_to_cartesian(r_halos, plc.theta[groupsinplane]*conv, plc.phi[groupsinplane]*conv) )
+             pos_part  = np.transpose( ap.spherical_to_cartesian(r, np.pi/2 - theta2, phi2) )
+             final_pos = np.repeat(pos_halos, N_part, axis=0) + pos_part
+             final_ang = np.transpose( ap.cartesian_to_spherical(final_pos[:,0], final_pos[:,1], final_pos[:,2]) )
 
              print(" Updating mass maps")
-             pixels = hp.pixelfunc.ang2pix(hp.pixelfunc.npix2nside(params.npixels), np.pi/2 - final_ang[1,:], final_ang[2,:])
-             deltai  += np.bincount(pixels, minlength=params.npixels)
+             pixels  = hp.pixelfunc.ang2pix(hp.pixelfunc.npix2nside(params.npixels), np.pi/2 - final_ang[:, 1], final_ang[:, 2])
+             deltai += np.bincount(pixels, minlength=params.npixels)
 
       print(" Saving convergence, mass and halo maps")
       deltahi[~mask] = hp.UNSEEN

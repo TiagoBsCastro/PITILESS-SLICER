@@ -43,8 +43,8 @@ optimizer     = 'NewtonRaphson'
 #### Reads the parameters from Pinocchio's parameters file ####
 ###############################################################
 
-paramfilename = "/beegfs/tcastro/TestRuns/lowres1/parameter_file"
-directoryname = "/beegfs/tcastro/TestRuns/lowres1/"
+paramfilename = "/beegfs/tcastro/TestRuns/lowres0/parameter_file"
+directoryname = "/beegfs/tcastro/TestRuns/lowres0/"
 
 ###############################################################
 ########### Under the Hood from this point Forward ############

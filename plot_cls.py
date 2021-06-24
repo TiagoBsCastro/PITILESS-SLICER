@@ -6,7 +6,7 @@ import params
 from glob import glob
 from plot_style import *
 
-for name in ["lowres1"]:
+for name in ["lowres0", "lowres1", "lowres2", "lowres3"]:
 
   for i, fname in enumerate(glob("Maps/kappa_{}_*".format(name))):
 
@@ -35,4 +35,3 @@ plt.xlabel(r"$\ell$")
 plt.ylabel(r"$\ell\,(\ell+1)\times C_{\kappa}(\ell)}$")
 plt.legend()
 plt.show()
-
