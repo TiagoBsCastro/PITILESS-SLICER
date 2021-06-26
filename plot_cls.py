@@ -10,7 +10,7 @@ import pyccl as ccl
 # Create new Cosmology object with a given set of parameters. This keeps track
 # of previously-computed cosmological functions
 cosmo = ccl.Cosmology(
-    Omega_c=params.omega0-params.omegabaryon, Omega_b=params.omegabaryon, h=params.h0true/100.0, sigma8=params.sigma8, n_s=0.963)
+    Omega_c=params.omega0-params.omegabaryon, Omega_b=params.omegabaryon, h=params.h0true/100.0, sigma8=params.sigma8, n_s=params.ns)
 
 # Define a simple binned galaxy number density curve as a function of redshift
 z_n = np.linspace(0.0, params.zsource, 50)
@@ -24,7 +24,7 @@ lens = ccl.WeakLensingTracer(cosmo, dndz=(z_n, n))
 ell = np.arange(2, 1000)
 cls = ccl.angular_cl(cosmo, lens, lens, ell)
 
-for name in ["lowres1"]:
+for name in ["large-plc-lr"]:
 
   for i, fname in enumerate(glob("Maps/kappa_{}_*".format(name))):
 
@@ -47,8 +47,8 @@ for name in ["lowres1"]:
   np.savetxt("Maps/Cls_{}.txt".format(name), np.transpose([l_pin, cls_pin]))
 
 # Lin. Theory
-l = np.logspace(0, np.log10(l_pin).max())
-plt.loglog(l, l*(l+1)*Cl.Cls(l, params.zsource), label="Lin. Theory")
+#l = np.logspace(0, np.log10(l_pin).max())
+#plt.loglog(l, l*(l+1)*Cl.Cls(l, params.zsource), label="Lin. Theory")
 plt.loglog(ell, ell*(ell+1)*cls, label="Halofit")
 plt.xlabel(r"$\ell$")
 plt.ylabel(r"$\ell\,(\ell+1)\times C_{\kappa}(\ell)}$")
