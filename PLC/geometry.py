@@ -209,7 +209,7 @@ def getFarthestIntersection(repx,repy,repz):
     return  np.sqrt( (getFarthestVertice(repx,repy,repz)**2).sum() )
 
 
-repmax = int(cosmology.lcdm.comoving_distance(params.zsource).value/params.boxsize) + 1
+repmax = int( np.ceil( (cosmology.lcdm.comoving_distance(params.zsource).value - params.boxsize/2 )/params.boxsize) )
 
 geometry = np.array(
      [ [repx, repy, repz, getClosestIntersection(repx,repy,repz), getFarthestIntersection(repx, repy, repz) ]
