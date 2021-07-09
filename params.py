@@ -79,12 +79,12 @@ if os.path.isfile(paramfilename):
       if redshifts.size == 1:
           redshifts = redshifts.reshape(1)
       plcstartingz = getValueFromFile("StartingzForPLC", paramfile, float, rank)
-      pintlessfile = directoryname+"pinocchio."+runflag+".t_snapshot.out"
-      pincosmofile = directoryname+"pinocchio."+runflag+".cosmology.out"
-      pingeofile   = directoryname+"pinocchio."+runflag+".geometry.out"
-      pinplcfile   = directoryname+"pinocchio."+runflag+".plc.out"
-      pincatfile   = directoryname+"pinocchio.{0:5.4f}."+runflag+".catalog.out"
-      pinmffile    = directoryname+"pinocchio.{0:5.4f}."+runflag+".mf.out"
+      pintlessfile = os.path.join(directoryname,"pinocchio."+runflag+".t_snapshot.out")
+      pincosmofile = os.path.join(directoryname,"pinocchio."+runflag+".cosmology.out")
+      pingeofile   = os.path.join(directoryname,"pinocchio."+runflag+".geometry.out")
+      pinplcfile   = os.path.join(directoryname,"pinocchio."+runflag+".plc.out")
+      pincatfile   = os.path.join(directoryname,"pinocchio.{0:5.4f}."+runflag+".catalog.out")
+      pinmffile    = os.path.join(directoryname,"pinocchio.{0:5.4f}."+runflag+".mf.out")
 
       analyticmf = getValueFromFile("AnalyticMassFunction", paramfile, int, rank)
 
