@@ -149,7 +149,6 @@ if os.path.isfile(paramfilename):
 
           plcaxis    = getValueFromFile("PLCAxis", paramfile, typeArrayFromString(float), rank)
           plcaxis   /= np.sqrt( (plcaxis**2).sum() )
-          print(plcaxis)
           plccenter  = getValueFromFile("PLCCenter", paramfile, typeArrayFromString(float), rank)
           plccenter /= boxsize
 
