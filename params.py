@@ -72,6 +72,10 @@ if os.path.isfile(paramfilename):
       ngrid        = getValueFromFile("GridSize", paramfile, int, rank)
       nparticles   = getValueFromFile("GridSize", paramfile, int, rank)**3
       fovindeg     = getValueFromFile("PLCAperture", paramfile, float, rank)
+      if fovindeg > 180.0:
+            
+            fovindeg = 180.0
+            
       fovinradians = fovindeg * np.pi/180.0
       runflag      = getValueFromFile("RunFlag", paramfile, str, rank)
       outputlist   = getValueFromFile("OutputList", paramfile, str, rank)
