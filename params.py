@@ -43,8 +43,8 @@ optimizer     = 'NewtonRaphson'
 #### Reads the parameters from Pinocchio's parameters file ####
 ###############################################################
 
-paramfilename = "/beegfs/tcastro/TestRuns/large-plc-lr/parameter_file"
-directoryname = "/beegfs/tcastro/TestRuns/large-plc-lr/"
+paramfilename = "/beegfs/pmonaco/Pinocchio/LargePLC_timeless/SmallerPLC/SmallerPLC_0.params"
+directoryname = "/beegfs/pmonaco/Pinocchio/LargePLC_timeless/SmallerPLC/"
 
 ###############################################################
 ########### Under the Hood from this point Forward ############
@@ -149,6 +149,7 @@ if os.path.isfile(paramfilename):
 
           plcaxis    = getValueFromFile("PLCAxis", paramfile, typeArrayFromString(float), rank)
           plcaxis   /= np.sqrt( (plcaxis**2).sum() )
+          print(plcaxis)
           plccenter  = getValueFromFile("PLCCenter", paramfile, typeArrayFromString(float), rank)
           plccenter /= boxsize
 
