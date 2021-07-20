@@ -29,8 +29,8 @@ cmmodel = 'diemer19' # colossus models: https://bdiemer.bitbucket.io/colossus/ha
 ################## Past Light Cone Parameters #################
 ###############################################################
 
-npixels       = 12*2**20
-zsource       = 0.3
+npixels       = 12*2**22
+zsource       = 2.0
 nlensperbox   = 0
 lensthickness = 250  # Only used if nlensperbox == 0
 norder        = 2
@@ -43,8 +43,8 @@ optimizer     = 'NewtonRaphson'
 #### Reads the parameters from Pinocchio's parameters file ####
 ###############################################################
 
-paramfilename = "/beegfs/pmonaco/Pinocchio/LargePLC_timeless/SmallerPLC/SmallerPLC_0.params"
-directoryname = "/beegfs/pmonaco/Pinocchio/LargePLC_timeless/SmallerPLC/"
+paramfilename = "/beegfs/tcastro/TestRuns/lacopo/parameter_lcdm"
+directoryname = "/beegfs/tcastro/TestRuns/lacopo/"
 
 ###############################################################
 ########### Under the Hood from this point Forward ############

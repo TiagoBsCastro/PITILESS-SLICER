@@ -24,7 +24,7 @@ lens = ccl.WeakLensingTracer(cosmo, dndz=(z_n, n))
 ell = np.arange(2, 1000)
 cls = ccl.angular_cl(cosmo, lens, lens, ell)
 
-for name in ["large-plc-lr"]:
+for name in ["fullsky"]:
 
   for i, fname in enumerate(glob("Maps/kappa_{}_*".format(name))):
 

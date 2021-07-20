@@ -33,12 +33,6 @@ else:
 
 geometry = comm.bcast(geometry)
 
-# Check if the simplistic work balance will do
-if (params.nparticles/params.numfiles)%size:
-
-    print("The data cannot be scattered on {} processes!".format(size))
-    comm.Abort()
-
 # particle mass
 mpart = (2.7753663e11 * params.omega0 * params.boxsize ** 3)/params.nparticles
 
@@ -68,23 +62,36 @@ for snapnum in range(params.numfiles):
    if rank:
       # Defining ts to the other ranks
       ts   = Bunch(qPos = None, V1   = None, V2   = None, V31  = None, V32  = None, Zacc = None, Npart = None)
+      counts = None
+      dspls  = None
+      counts3d = None
+      dspls3d  = None
+
+   else:
+
+      counts3d = [ 3*(ts.Npart//size + 1) if i < ts.Npart%size else 3 * (ts.Npart//size) for i in range(size)]
+      dspls3d  = [0] + [ np.sum(counts3d[:i]) for i in range(1, size) ]
+      counts = [ (ts.Npart//size + 1) if i < ts.Npart%size else (ts.Npart//size) for i in range(size)]
+      dspls  = [0] + [ np.sum(counts[:i]) for i in range(1, size) ]
 
    npart = comm.bcast(ts.Npart)
-   qPosslice = np.empty((npart//size,3), dtype = np.float32)
-   V1slice   = np.empty((npart//size,3), dtype = np.float32)
-   V2slice   = np.empty((npart//size,3), dtype = np.float32)
-   V31slice  = np.empty((npart//size,3), dtype = np.float32)
-   V32slice  = np.empty((npart//size,3), dtype = np.float32)
-   Zaccslice = np.empty(npart//size, dtype = np.float32)
-   aplcslice = np.empty(npart//size, dtype = np.float32)
-   skycoordslice = np.empty((npart//size, 3), dtype = np.float32)
+   ni    = npart//size + 1 if rank < npart%size else npart//size
+   qPosslice = np.empty((ni,3), dtype = np.float32)
+   V1slice   = np.empty((ni,3), dtype = np.float32)
+   V2slice   = np.empty((ni,3), dtype = np.float32)
+   V31slice  = np.empty((ni,3), dtype = np.float32)
+   V32slice  = np.empty((ni,3), dtype = np.float32)
+   Zaccslice = np.empty(ni, dtype = np.float32)
+   aplcslice = np.empty(ni, dtype = np.float32)
+   skycoordslice = np.empty((ni, 3), dtype = np.float32)
 
-   comm.Scatterv(ts.qPos, qPosslice,root=0); qPosslice -= np.array([0.5, 0.5, 0.5]).dot(params.change_of_basis);# Re-centering the snapshot on [0.5, 0.5, 0.5]
-   comm.Scatterv(ts.V1  ,V1slice   ,root=0)
-   comm.Scatterv(ts.V2  ,V2slice   ,root=0)
-   comm.Scatterv(ts.V31 ,V31slice  ,root=0)
-   comm.Scatterv(ts.V32 ,V32slice  ,root=0)
-   comm.Scatterv(ts.Zacc ,Zaccslice,root=0)
+   comm.Scatterv([ts.qPos, counts3d, dspls3d, MPI.FLOAT], qPosslice,root=0)
+   qPosslice -= np.array([0.5, 0.5, 0.5]).dot(params.change_of_basis);# Re-centering the snapshot on [0.5, 0.5, 0.5]
+   comm.Scatterv([ts.V1, counts3d, dspls3d, MPI.FLOAT]  ,V1slice   ,root=0)
+   comm.Scatterv([ts.V2, counts3d, dspls3d, MPI.FLOAT]  ,V2slice   ,root=0)
+   comm.Scatterv([ts.V31, counts3d, dspls3d, MPI.FLOAT] ,V31slice  ,root=0)
+   comm.Scatterv([ts.V32, counts3d, dspls3d, MPI.FLOAT] ,V32slice  ,root=0)
+   comm.Scatterv([ts.Zacc, counts, dspls, MPI.FLOAT] ,Zaccslice,root=0)
 
    del ts
 
