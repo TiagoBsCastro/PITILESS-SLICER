@@ -11,7 +11,7 @@ import IO.Pinocchio.ReadPinocchio as rp
 import astropy.coordinates as ap
 import NFW.NFWx as NFW
 from time import time
-from scipy.interpolate import interp2d
+from scipy.interpolate import RectBivariateSpline
 
 # Bunch class for easy MPI handling
 class Bunch:
@@ -257,7 +257,7 @@ if not rank:
    m_interp = np.geomspace(0.95 * params.minhalomass*mpart, 1e16, 50)
    z_interp = np.linspace(0.0, params.zsource, 50)
    c_interp = np.array( [cosmology.concentration.concentration( m_interp, '200c', z, model = params.cmmodel) for z in z_interp], dtype=np.float32 )
-   c_interp = interp2d( m_interp, z_interp, c_interp, kind='cubic' )
+   c_interp = RectBivariateSpline( m_interp, z_interp, c_interp )
 
    for z1, z2 in zip(cosmology.zlinf, cosmology.zlsup):
 
@@ -286,7 +286,7 @@ if not rank:
             print(" Computing the concentration")
             rhoc   = cosmology.lcdm.critical_density(plc.redshift[groupsinplane]).to("M_sun/Mpc^3").value/(1+plc.redshift[groupsinplane])**3
             rDelta = np.ascontiguousarray((3*plc.Mass[groupsinplane]/4/np.pi/200/rhoc)**(1.0/3), dtype=np.float32)
-            conc   = c_interp(plc.Mass[groupsinplane], plc.redshift[groupsinplane])
+            conc   = c_interp(plc.Mass[groupsinplane], plc.redshift[groupsinplane], grid=False).astype(np.float32)
 
             print(" Sampling particle on halos")
             N_part = np.ascontiguousarray( np.round(plc.Mass[groupsinplane]/mpart).astype(np.int32) )
@@ -324,7 +324,7 @@ if not rank:
              print(" Computing the concentration")
              rhoc   = cosmology.lcdm.critical_density(plc.redshift[groupsinplane]).to("M_sun/Mpc^3").value/(1+plc.redshift[groupsinplane])**3
              rDelta = np.ascontiguousarray((3*plc.Mass[groupsinplane]/4/np.pi/200/rhoc)**(1.0/3), dtype=np.float32)
-             conc   = np.array( [cosmology.concentration.concentration( m, '200c', z, model = params.cmmodel) for m, z in zip(plc.Mass[groupsinplane], plc.redshift[groupsinplane])], dtype=np.float32 )
+             conc   = c_interp(plc.Mass[groupsinplane], plc.redshift[groupsinplane], grid=False).astype(np.float32)
 
              print(" Sampling particle on halos")
              N_part = np.ascontiguousarray( np.round(plc.Mass[groupsinplane]/mpart).astype(np.int32) )
