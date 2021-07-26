@@ -257,7 +257,7 @@ if not rank:
    m_interp = np.geomspace(0.95 * params.minhalomass*mpart, 1e16, 50)
    z_interp = np.linspace(0.0, params.zsource, 50)
    c_interp = np.array( [cosmology.concentration.concentration( m_interp, '200c', z, model = params.cmmodel) for z in z_interp], dtype=np.float32 )
-   c_interp = inter2d( m_interp, z_interp, c_interp, kind='cubic' )
+   c_interp = interp2d( m_interp, z_interp, c_interp, kind='cubic' )
 
    for z1, z2 in zip(cosmology.zlinf, cosmology.zlsup):
 
