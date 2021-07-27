@@ -30,7 +30,7 @@ cmmodel = 'diemer19' # colossus models: https://bdiemer.bitbucket.io/colossus/ha
 ###############################################################
 
 npixels       = 12*2**22
-zsource       = 2.0
+zsource       = 1.0
 nlensperbox   = 0
 lensthickness = 250  # Only used if nlensperbox == 0
 norder        = 2
@@ -43,8 +43,8 @@ optimizer     = 'NewtonRaphson'
 #### Reads the parameters from Pinocchio's parameters file ####
 ###############################################################
 
-paramfilename = "/beegfs/tcastro/TestRuns/lacopo/parameter_lcdm"
-directoryname = "/beegfs/tcastro/TestRuns/lacopo/"
+paramfilename = "/beegfs/tcastro/TestRuns/large-plc/parameter_file"
+directoryname = "/beegfs/tcastro/TestRuns/large-plc/"
 
 ###############################################################
 ########### Under the Hood from this point Forward ############

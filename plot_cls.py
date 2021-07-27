@@ -21,10 +21,10 @@ n = np.zeros(z_n.shape); n[-1] = 1
 lens = ccl.WeakLensingTracer(cosmo, dndz=(z_n, n))
 
 # Calculate the angular cross-spectrum of the two tracers as a function of ell
-ell = np.arange(2, 1000)
+ell = np.arange(2, 4000)
 cls = ccl.angular_cl(cosmo, lens, lens, ell)
 
-for name in ["fullsky"]:
+for name in ["large-plc"]:
 
   for i, fname in enumerate(glob("Maps/kappa_{}_*".format(name))):
 
@@ -40,7 +40,7 @@ for name in ["fullsky"]:
 
         kappa[mask] += hp.read_map(fname, dtype=np.float32)[mask]
 
-  cls_pin = hp.anafast(kappa, lmax=1000) * norm
+  cls_pin = hp.anafast(kappa) * norm
   l_pin   = np.arange(cls_pin.size)
 
   plt.loglog(l_pin, l_pin * (l_pin+1) * cls_pin, label="Pinocchio "+name)
