@@ -149,8 +149,10 @@ for snapnum in range(params.numfiles):
       DPLC   = cosmology.getWisePolyFit(cosmology.ainterp[auxcut], cosmology.Dinterp[auxcut]/params.boxsize)
 
       # Check which replications are compressed by the lens
-      replicationsinside = geometry[ (geometry['nearestpoint'] < dlsup*(1+params.beta_buffer)) &
-                                     (geometry['farthestpoint'] >= dlinf*(1-params.beta_buffer)) ]
+      replicationsinside = geometry[ ((geometry['nearestpoint'] < dlsup*(1+params.beta_buffer)) &
+                                     (geometry['farthestpoint'] >= dlinf*(1-params.beta_buffer)) ) | 
+                                     ((geometry['nearestpoint']>=dlinf*(1-params.beta_buffer)) & (geometry['nearestpoint']<dlsup*(1+params.beta_buffer)) | 
+                                      (geometry['farthestpoint']>=dlinf*(1-params.beta_buffer)) & (geometry['farthestpoint']<dlsup*(1+params.beta_buffer))]
 
       if not rank:
          print(" Replications inside:")
