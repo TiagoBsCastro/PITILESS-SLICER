@@ -35,7 +35,7 @@ if params.nlensperbox != 0:
 else:
   lensthickness = params.lensthickness
 
-nreplications = int(lcdm.comoving_distance(params.zsource).value/lensthickness + 1 )
+nreplications = int(lcdm.comoving_distance(params.zsource).value/lensthickness + 1 ); print(nreplications)
 zl    = [0] + [ z_at_value(lcdm.comoving_distance, n*lensthickness*Mpc, zmax = 1e4) for n in range(1, nreplications) ] + [params.zsource]
 zlsup = zl[1:  ]
 zlinf = zl[ :-1]

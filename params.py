@@ -30,8 +30,8 @@ cmmodel = 'diemer19' # colossus models: https://bdiemer.bitbucket.io/colossus/ha
 ###############################################################
 
 npixels       = 12*2**22
-zsource       = 1.0
-nlensperbox   = 0
+zsource       = 0.3
+nlensperbox   = 1
 lensthickness = 250  # Only used if nlensperbox == 0
 norder        = 2
 beta_buffer   = 1e-3 # to account for particles that go out of the box
@@ -43,8 +43,8 @@ optimizer     = 'NewtonRaphson'
 #### Reads the parameters from Pinocchio's parameters file ####
 ###############################################################
 
-paramfilename = "/beegfs/tcastro/TestRuns/large-plc/parameter_file"
-directoryname = "/beegfs/tcastro/TestRuns/large-plc/"
+paramfilename = "/home/tcastro/PITILESS-SLICER/TestRuns/parameter_file.txt"
+directoryname = "/home/tcastro/PITILESS-SLICER/TestRuns/"
 
 ###############################################################
 ########### Under the Hood from this point Forward ############
@@ -115,7 +115,7 @@ if os.path.isfile(paramfilename):
                   pass
               else:
                   print("Pinocchio files not found! Check the run!", rank=rank)
-                  raise FileNotFoundError
+                  #raise FileNotFoundError
 
       else:
 

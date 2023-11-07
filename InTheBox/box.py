@@ -24,8 +24,8 @@ if not rank:
     print("[{}] STDERR will be redirected to box_err_{{rank}}.txt.".format(datetime.datetime.now()))
     print("[{}] Check the files for more information on the run.".format(datetime.datetime.now()))
 
-sys.stdout = open('box_log_{}.txt'.format(rank), 'w')
-sys.stderr = open('box_err_{}.txt'.format(rank), 'w')
+#sys.stdout = open('box_log_{}.txt'.format(rank), 'w')
+#sys.stderr = open('box_err_{}.txt'.format(rank), 'w')
 
 # Defining not stdout enviroment
 class DummyFile(object):
@@ -65,7 +65,7 @@ comm.barrier()
 start = time.time()
 print("[{}] # Reading Timeless Snapshot:".format(datetime.datetime.now()))
 snap = snapshot.timeless_snapshot(params.pintlessfile)
-dummy_head = deepcopy(snap.snap.Header)
+dummy_head = deepcopy(snap.Header)
 print("[{}] # Time spent: {} s".format(datetime.datetime.now(), time.time() - start))
 ###########################################################################
 

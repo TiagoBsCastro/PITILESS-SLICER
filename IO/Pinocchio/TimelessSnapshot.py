@@ -34,16 +34,23 @@ class timeless_snapshot:
                fname = pintlessfile+"{}".format(snapnum)
 
            self.ID    = g3read.read_new(fname, 'ID  ', 1)
-           self.V1    = g3read.read_new(fname, 'VZEL', 1)
-           self.V2    = g3read.read_new(fname, 'V2  ', 1)
-           self.V31   = g3read.read_new(fname, 'V3_1', 1)
-           self.V32   = g3read.read_new(fname, 'V3_2', 1)
+           try:
+               self.V1    = g3read.read_new(fname, 'VZEL', 1)
+               self.V2    = g3read.read_new(fname, 'V2  ', 1)
+               self.V31   = g3read.read_new(fname, 'V3_1', 1)
+               self.V32   = g3read.read_new(fname, 'V3_2', 1)
+           except:
+               self.V1    = g3read.read_new(fname, 'ZEL ', 1)
+               self.V2    = g3read.read_new(fname, '2LPT', 1)
+               self.V31   = g3read.read_new(fname, '31PT', 1)
+               self.V32   = g3read.read_new(fname, '32PT', 1)
            self.Zacc  = g3read.read_new(fname, 'ZACC', 1)
            self.Npart = self.ID.size
 
-        self.NG    = params.ngrid
-        self.Lbox  = g3read.GadgetFile(fname, is_snap=False).header.BoxSize
-        self.Cell  = self.Lbox/float(self.NG)
+        self.Header = g3read.GadgetFile(fname, is_snap=False).header
+        self.NG     = params.ngrid
+        self.Lbox   = self.Header.BoxSize
+        self.Cell   = self.Lbox/float(self.NG)
 
         face = 1
         sgn  = [1, 1, 1]
