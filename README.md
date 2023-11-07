@@ -26,6 +26,7 @@ You can install all the required packages using the following command:
 
 ```bash
 pip install -r requirements.txt
+```
 
 ## Instalation
 
@@ -35,6 +36,7 @@ To install PITILESS-SLICER, follow these steps:
 git clone https://github.com/TiagoBsCastro/PITILESS-SLICER.git
 cd PITILESS-SLICER
 pip install -e .
+```
 
 ## Contributions:
 
