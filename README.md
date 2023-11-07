@@ -1,42 +1,42 @@
 # PITILESS-SLICER
 
-PITILESS-SLICER is a cosmological simulation toolkit specialized in painting dark-matter on PINOCCHIO timeless snapshots.
+PITILESS-SLICER is a cosmological simulation toolkit specialized in painting dark matter on PINOCCHIO timeless snapshots.
 
 ## Requirements
 
-Before installing PITILESS-SLICER, you need to ensure that the following packages are installed:
+Before installing PITILESS-SLICER, ensure that the following packages are installed:
 
-astropy==5.3.4
-colossus==1.3.1
-Cython==3.0.0
-g3read==1.0.1
-healpy==1.16.2
-hmf==3.4.3
-lmfit==1.0.3
-matplotlib==3.7.2
-mayavi==4.8.1
-mpi4py==3.1.4
-numpy==1.25.2
-pyccl==2.5.1
-Pylians==0.7
-scipy==1.11.3
-setuptools==68.0.0
+- astropy==5.3.4
+- colossus==1.3.1
+- Cython==3.0.0
+- g3read==1.0.1
+- healpy==1.16.2
+- hmf==3.4.3
+- lmfit==1.0.3
+- matplotlib==3.7.2
+- mayavi==4.8.1
+- mpi4py==3.1.4
+- numpy==1.25.2
+- pyccl==2.5.1
+- Pylians==0.7
+- scipy==1.11.3
+- setuptools==68.0.0
 
 You can install all the required packages using the following command:
 
 ```bash
 pip install -r requirements.txt
 
-## Installation
+## Instalation
 
-To install the PITILESS-SLICER, follow these steps:
+To install PITILESS-SLICER, follow these steps:
 
 ```bash
 git clone https://github.com/TiagoBsCastro/PITILESS-SLICER.git
 cd PITILESS-SLICER
 pip install -e .
 
-## Contributions
+## Contributions:
 
 We welcome contributions to the PITILESS-SLICER project. If you would like to contribute, please follow the steps below.
 
@@ -69,4 +69,3 @@ If you have improvements to PITILESS-SLICER, submit a pull request with your cha
 ---
 
 Your contributions are greatly appreciated and will help to continue improving PITILESS-SLICER for everyone.
-
