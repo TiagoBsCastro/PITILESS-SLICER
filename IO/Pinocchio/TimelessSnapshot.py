@@ -21,7 +21,7 @@ def nostdout():
 
 class timeless_snapshot:
 
-    def __init__(self, pintlessfile=params.pintlessfile, snapnum=-1, ready_to_bcast = False):
+    def __init__(self, pintlessfile=params.pintlessfile, snapnum=-1, ready_to_bcast = False, randomize=True, changebasis=True):
 
         with nostdout():
 
@@ -52,23 +52,31 @@ class timeless_snapshot:
         self.Lbox   = self.Header.BoxSize
         self.Cell   = self.Lbox/float(self.NG)
 
-        face = 1
-        sgn  = [1, 1, 1]
         # Recentering the box
-        self.qPos = np.array([ (self.ID-1)%self.NG,((self.ID-1)//self.NG)%self.NG,\
-                                  ((self.ID-1)//self.NG**2)%self.NG ]).transpose() * self.Cell + self.Cell/2.
+        #self.qPos = np.array([ (self.ID-1)%self.NG,((self.ID-1)//self.NG)%self.NG,\
+        #                          ((self.ID-1)//self.NG**2)%self.NG ]).transpose() * self.Cell + self.Cell/2.
+        self.qPos = (np.array([(self.ID)//self.NG//self.NG, ((self.ID)//self.NG)%self.NG, self.ID%self.NG]).transpose() * self.Cell + self.Cell/2)/self.Lbox
+        #define INDEX_TO_COORD(I,X,Y,Z,L) ({Z=(I)%L[_z_]; int _KK_=(I)/L[_z_]; Y=_KK_%L[_y_]; X=_KK_/L[_y_];})
 
-        self.qPos = randomizePositions(params.plccenter, face, sgn, self.qPos/self.Lbox)
-        self.V1   = self.Cell*randomizeVelocities(face, sgn, self.V1)/self.Lbox
-        self.V2   = self.Cell*randomizeVelocities(face, sgn, self.V2)/self.Lbox
-        self.V31  = self.Cell*randomizeVelocities(face, sgn, self.V31)/self.Lbox
-        self.V32  = self.Cell*randomizeVelocities(face, sgn, self.V32)/self.Lbox
-        # Changing the Basis to PLC basis
-        self.qPos = self.qPos.dot(params.change_of_basis)
-        self.V1   = self.V1.dot(params.change_of_basis)
-        self.V2   = self.V2.dot(params.change_of_basis)
-        self.V31  = self.V31.dot(params.change_of_basis)
-        self.V32  = self.V32.dot(params.change_of_basis)
+        if randomize:
+            self.qPos = randomizePositions(params.plccenter, face, sgn, self.qPos)
+            self.V1   = self.Cell*randomizeVelocities(face, sgn, self.V1)/self.Lbox
+            self.V2   = self.Cell*randomizeVelocities(face, sgn, self.V2)/self.Lbox
+            self.V31  = self.Cell*randomizeVelocities(face, sgn, self.V31)/self.Lbox
+            self.V32  = self.Cell*randomizeVelocities(face, sgn, self.V32)/self.Lbox
+        else:
+            self.V1   = self.Cell*self.V1/self.Lbox
+            self.V2   = self.Cell*self.V2/self.Lbox
+            self.V31  = self.Cell*self.V31/self.Lbox
+            self.V32  = self.Cell*self.V32/self.Lbox
+
+        if changebasis:
+            # Changing the Basis to PLC basis
+            self.qPos = self.qPos.dot(params.change_of_basis)
+            self.V1   = self.V1.dot(params.change_of_basis)
+            self.V2   = self.V2.dot(params.change_of_basis)
+            self.V31  = self.V31.dot(params.change_of_basis)
+            self.V32  = self.V32.dot(params.change_of_basis)
 
         if ready_to_bcast:
 

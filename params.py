@@ -115,7 +115,7 @@ if os.path.isfile(paramfilename):
                   pass
               else:
                   print("Pinocchio files not found! Check the run!", rank=rank)
-                  #raise FileNotFoundError
+                  raise FileNotFoundError
 
       else:
 
