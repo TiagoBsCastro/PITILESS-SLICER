@@ -65,7 +65,7 @@ start = time.time()
 print("# Reading Timeless Snapshot:")
 snap = snapshot.timeless_snapshot(params.pintlessfile, randomize=False, changebasis=False)
 dummy_head = deepcopy(snap.Header)
-print("# Time spent: {} s".format(time.time() - start))
+print("# Time spent: {0:.3f} s".format(time.time() - start))
 ###########################################################################
 
 # Looping on the outputlist redshifts
@@ -79,7 +79,7 @@ for z in params.redshifts:
             cat = catalog(params.pincatfile.format(z))
         except IndexError:
             cat = catalog5(params.pincatfile.format(z))
-    print("# Time spent: {} s".format( time.time() - start))
+    print("# Time spent: {0:.3f} s".format( time.time() - start))
 
     if cat.Mass.size != 0:
 
@@ -106,7 +106,7 @@ for z in params.redshifts:
             cinterp = concentration.concentration(minterp, '200c', z, model = params.cmmodel)
             conc    = np.array([np.interp(m, minterp, cinterp) for m in cat.Mass], dtype=np.float32)
 
-        print("## Time spent: {} s".format( time.time() - start))
+        print("## Time spent: {0:.3f} s".format( time.time() - start))
 
         start = time.time()
         print("## Sampling Particles in Halos")
@@ -115,7 +115,7 @@ for z in params.redshifts:
         phi = np.empty( np.sum(cat.Npart), dtype=np.float32 )
         NFW.random_nfw(cat.Npart.astype(np.int32), conc, rDelta.astype(np.float32), r, theta, phi)
         pos1 = pos1 + np.transpose([r*np.sin(theta)*np.cos(phi), r*np.sin(theta)*np.sin(phi), r*np.cos(theta)])
-        print("## Time spent: {} s".format( time.time() - start))
+        print("## Time spent: {0:.3f} s".format( time.time() - start))
 
     start = time.time()
     print("## Displacing Particles outside Halos")
@@ -124,7 +124,7 @@ for z in params.redshifts:
     pos2 = snap.snapPos(z, zcentered=False) + params.boxsize/2
     pos2 = pos2[filter]
     vel2 = snap.snapVel(z, filter=filter)
-    print("## Time spent: {} s".format( time.time() - start))
+    print("## Time spent: {0:.3f} s".format( time.time() - start))
 
     if cat.Mass.size != 0:
 
@@ -234,7 +234,7 @@ for z in params.redshifts:
     else:
         ids = np.arange(0, totpart[rank])
 
-    print("## Time spent: {} s".format( time.time() - start))
+    print("## Time spent: {0:.3f} s".format( time.time() - start))
 
     dummy_head.redshift = z
     dummy_head.time     = 1.0/(1.0+z)

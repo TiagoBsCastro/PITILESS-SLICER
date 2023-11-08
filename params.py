@@ -51,6 +51,13 @@ directoryname = "/home/tcastro/PITILESS-SLICER/TestRuns/"
 ###############################################################
 ###############################################################
 
+def check_files(file_dict):
+    missing_files = []
+    for description, filepath in file_dict.items():
+        if not os.path.isfile(filepath):
+            missing_files.append(description)
+    return missing_files
+
 if nlensperbox == 0:
 
     beta_buffer = 0.0
@@ -109,13 +116,21 @@ if os.path.isfile(paramfilename):
 
           for z in redshifts:
 
-              if os.path.isfile(pintlessfile) and os.path.isfile(pincosmofile) \
-                 and os.path.isfile(pingeofile) and os.path.isfile(pinplcfile) \
-                 and os.path.isfile(pincatfile.format(z)) and os.path.isfile(pinmffile.format(z)):
-                  pass
-              else:
-                  print("Pinocchio files not found! Check the run!", rank=rank)
-                  raise FileNotFoundError
+              file_paths = {
+                  'PITILESS file': pintlessfile,
+                  'Pinocchio cosmology file': pincosmofile,
+                  'Pinocchio geometry file': pingeofile,
+                  'Pinocchio PLC file': pinplcfile,
+                 f'Pinocchio catalogue file for redshift {z}': pincatfile.format(z),
+                 f'Pinocchio mass function file for redshift {z}': pinmffile.format(z)
+              }
+              missing_files = check_files(file_paths)
+
+              if missing_files:
+                  missing_files_str = ", ".join(missing_files)
+                  error_message = f"Pinocchio files not found: {missing_files_str}. Check the run!"
+                  print(error_message, rank=rank)
+                  raise FileNotFoundError(error_message)
 
       else:
 
@@ -142,8 +157,6 @@ if os.path.isfile(paramfilename):
                   if not os.path.isfile( (pincatfile+".{1:d}").format(z, snapnum)):
                       print("Pinocchio catalogs files not found! Check the run!", rank=rank)
                       raise FileNotFoundError
-
-      del z
 
       if checkIfBoolExists("PLCProvideConeData", paramfile, rank):
 
