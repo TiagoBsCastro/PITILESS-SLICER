@@ -35,15 +35,21 @@ if params.nlensperbox != 0:
 else:
   lensthickness = params.lensthickness
 
-nreplications = int(lcdm.comoving_distance(params.zsource).value/lensthickness + 1 ); print(nreplications)
+nreplications = int(lcdm.comoving_distance(params.zsource).value/lensthickness + 1 )
 zl    = [0] + [ z_at_value(lcdm.comoving_distance, n*lensthickness*Mpc, zmax = 1e4) for n in range(1, nreplications) ] + [params.zsource]
 zlsup = zl[1:  ]
 zlinf = zl[ :-1]
 
 ################### Pinocchio Cosmological Quantities ###################
 
-(a, t, D, D2, D31, D32) = np.loadtxt(params.pincosmofile, usecols=(0,1,2,3,4,5), unpack=True)
-(R, DeltaRGauss, k, Pk) = np.loadtxt(params.pincosmofile, usecols=(9, 10, 12, 13), unpack=True)
+# Checking the pinocchio cosmology version
+_ = np.loadtxt(params.pincosmofile)
+if _.shape[1] == 20:
+   (a, t, D, D2, D31, D32) = np.loadtxt(params.pincosmofile, usecols=(0, 1, 6, 7, 8, 9), unpack=True)
+   (R, DeltaRGauss, k, Pk) = np.loadtxt(params.pincosmofile, usecols=(14, 15, 18, 19), unpack=True)
+else:
+   (a, t, D, D2, D31, D32) = np.loadtxt(params.pincosmofile, usecols=(0, 1, 2, 3, 4, 5), unpack=True)
+   (R, DeltaRGauss, k, Pk) = np.loadtxt(params.pincosmofile, usecols=(9, 10, 12, 13), unpack=True)
 
 k  = k*100/params.h0true
 Pk = Pk/(100/params.h0true)**3

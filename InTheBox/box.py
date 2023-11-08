@@ -40,9 +40,9 @@ def nostdout():
 
 import params
 import cosmology
-from IO import Gadget
-from IO.Gadget.Blocks import line
+import g3read
 from IO.Pinocchio.ReadPinocchio import catalog
+from IO.Pinocchio.ReadPinocchio5 import catalog as catalog5
 import IO.Pinocchio.TimelessSnapshot as snapshot
 from IO.Utils.wrapPositions import wrapPositions
 
@@ -64,7 +64,7 @@ comm.barrier()
 #######################  Reading Timeless Snapshot  #######################
 start = time.time()
 print("[{}] # Reading Timeless Snapshot:".format(datetime.datetime.now()))
-snap = snapshot.timeless_snapshot(params.pintlessfile)
+snap = snapshot.timeless_snapshot(params.pintlessfile, randomize=False, changebasis=False)
 dummy_head = deepcopy(snap.Header)
 print("[{}] # Time spent: {} s".format(datetime.datetime.now(), time.time() - start))
 ###########################################################################
@@ -76,7 +76,10 @@ for z in params.redshifts:
     start = time.time()
     print("[{}] # Reading catalog: {}".format(datetime.datetime.now(), params.pincatfile.format(z)))
     with nostdout():
-        cat = catalog(params.pincatfile.format(z))
+        try:
+            cat = catalog(params.pincatfile.format(z))
+        except IndexError:
+            cat = catalog5(params.pincatfile.format(z))
     print("[{}] # Time spent: {} s".format(datetime.datetime.now(), time.time() - start))
 
     if cat.Mass.size != 0:
@@ -91,13 +94,7 @@ for z in params.redshifts:
         # Getting concentration
         start = time.time()
         print("[{}] ## Computing concentrations".format(datetime.datetime.now()))
-        if params.cmmodel == 'colossus':
-
-            minterp = np.geomspace(cat.Mass.min(), cat.Mass.max())
-            cinterp = concentration.concentration(minterp, '200c', z, model = 'bhattacharya13')
-            conc    = np.array([np.interp(m, minterp, cinterp) for m in cat.Mass], dtype=np.float32)
-
-        elif params.cmmodel == 'bhattacharya':
+        if params.cmmodel == 'mybhattacharya':
 
             # Bahattacharya fits for nu and c(M) - Table-2/200c-Full
             Da   = np.interp(1.0/(1.0+z), cosmology.a, cosmology.D)
@@ -106,8 +103,9 @@ for z in params.redshifts:
 
         else:
 
-            print("C(M)-model {} not known!".format(params.cmmodel))
-            comm.Abort()
+            minterp = np.geomspace(cat.Mass.min(), cat.Mass.max())
+            cinterp = concentration.concentration(minterp, '200c', z, model = params.cmmodel)
+            conc    = np.array([np.interp(m, minterp, cinterp) for m in cat.Mass], dtype=np.float32)
 
         print("[{}] ## Time spent: {} s".format(datetime.datetime.now(), time.time() - start))
 
@@ -241,19 +239,32 @@ for z in params.redshifts:
 
     dummy_head.redshift = z
     dummy_head.time     = 1.0/(1.0+z)
-    dummy_head.filenum  = np.array([size], dtype=np.int32)
     dummy_head.npart    = np.array([0, totpart[rank], 0, 0, 0, 0], dtype=np.uint32)
 
     print("[{}] ## Saving snapshot: {}"\
        .format( datetime.datetime.now(), params.pintlessfile.replace("t_snapshot", "{0:5.4f}".format(z))))
 
-    zsnap = Gadget.Init(params.pintlessfile.replace("t_snapshot", "{0:5.4f}".format(z)), -1, ToWrite=True, override=True)
-    zsnap.write_header(dummy_head)
-    zsnap.write_block(b"ID  ", np.dtype('uint32'),  ids.size, ids.astype(np.uint32))
-    zsnap.write_block(b"POS ", np.dtype('float32'), pos.size, pos.astype(np.float32))
-    zsnap.write_block(b"VEL ", np.dtype('float32'), vel.size, vel.astype(np.float32))
+    filename = params.pintlessfile.replace("t_snapshot", "{0:5.4f}".format(z))
+    with open(filename, 'a') as f: #create file if doesn't exists
+        pass
 
-    del pos, vel, ids, zsnap
+    # write header to file
+    # generate header
+    header = g3read.GadgetHeader(dummy_head.npart, dummy_head.mass, dummy_head.time, dummy_head.redshift, dummy_head.BoxSize, dummy_head.Omega0, dummy_head.OmegaLambda, dummy_head.HubbleParam, num_files=dummy_head.num_files)
+    f = g3read.GadgetWriteFile(filename, dummy_head.npart, {}, header) #write header file
+    f.write_header(f.header)
+
+    #allocate blocks data
+    f.add_file_block('ID  ', ids.size*8, partlen=8, dtype=np.int64)
+    f.add_file_block('POS ', pos.size*4, partlen=4*3)
+    f.add_file_block('VEL ', vel.size*4, partlen=4*3)
+
+    #write blocks data to disk
+    f.write_block( 'ID  ', -1, ids.astype(np.int64))
+    f.write_block( 'POS ', -1, pos)
+    f.write_block( 'VEL ', -1, vel)
+
+    del pos, vel, ids
 
     print("[{}] ## High water mark Memory Consumption: {} Gb\n".format(datetime.datetime.now(), \
                                      resource.getrusage(resource.RUSAGE_SELF).ru_maxrss/1024**2))

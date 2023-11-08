@@ -317,7 +317,7 @@ class Init:
                 skip=0
                 for i in range(6):
                     if self.Header.nall[i]>0:
-                        add=np.ones(self.Header.nall[i],dtype=np.float32)*self.Header.massarr[i].astype(np.float32)
+                        add=np.ones(self.Header.nall[i],dtype=np.float32)*self.Header.mass[i].astype(np.float32)
                         BB2=np.append(BB2,add)
 
             else:
@@ -326,8 +326,8 @@ class Init:
                 skip=0
                 for i in range(6):
 
-                    if self.Header.massarr[i]>0.0:
-                        add=np.ones(self.Header.nall[i],dtype=self.Map[place].dt)*self.Header.massarr[i].astype(self.Map[place].dt)
+                    if self.Header.mass[i]>0.0:
+                        add=np.ones(self.Header.nall[i],dtype=self.Map[place].dt)*self.Header.mass[i].astype(self.Map[place].dt)
                         BB2=np.concatenate((BB2,add))
                     else:
                         if self.Header.nall[i]>0:
@@ -383,7 +383,7 @@ class Init:
         # header
         np.array([256],dtype=np.int32).tofile(f)
         myHeader.npart.tofile(f)
-        myHeader.massarr.tofile(f)
+        myHeader.mass.tofile(f)
         myHeader.time.tofile(f)
         myHeader.redshift.tofile(f)
         myHeader.sfr.tofile(f)
@@ -677,7 +677,7 @@ class Header:
             f.seek(4, os.SEEK_SET)
 
         self.npart      =  np.fromfile(f,dtype=np.uint32 ,count=6)
-        self.massarr    =  np.fromfile(f,dtype=np.float64,count=6)
+        self.mass       =  np.fromfile(f,dtype=np.float64,count=6)
         self.time       = (np.fromfile(f,dtype=np.float64,count=1))[0]
         self.redshift   = (np.fromfile(f,dtype=np.float64,count=1))[0]
         self.sfr        = (np.fromfile(f,dtype=np.int32  ,count=1))[0]
@@ -698,7 +698,7 @@ class Header:
 
         if swap:
             self.npart.byteswap(True)
-            self.massarr.byteswap(True)
+            self.mass.byteswap(True)
             self.nall.byteswap(True)
             self.nallHigh.byteswap(True)
             self.time       = self.time.byteswap()
@@ -730,7 +730,7 @@ class Header:
 
         print("Quantities contained in Header:")
         print("npart[6]    - int32   - ",self.npart)
-        print("massarr[6]  - float64 - ",self.massarr)
+        print("massarr[6]  - float64 - ",self.mass)
         print("time        - float64 - ",self.time)
         print("redshift    - float64 - ",self.redshift)
         print("sfr         - int32   - ",self.sfr)

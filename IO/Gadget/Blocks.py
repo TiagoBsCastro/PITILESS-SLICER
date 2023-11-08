@@ -404,7 +404,7 @@ def map_of_blocks_1(snap,verbose):
 
         mtypes=np.array([],dtype=np.uint32)
         for i in range(6):
-            if (snap.Header.npart[i]==0 or snap.Header.massarr[i]>0):
+            if (snap.Header.npart[i]==0 or snap.Header.mass[i]>0):
                 mtypes=np.append(mtypes,0)
             else:
                 mtypes=np.append(mtypes,1)
@@ -577,7 +577,7 @@ def map_of_blocks_2(snap,verbose):
 
                 mtypes=np.array([],dtype=np.uint32)
                 for i in range(6):
-                    if (snap.Header.npart[i]==0 or snap.Header.massarr[i]>0):
+                    if (snap.Header.npart[i]==0 or snap.Header.mass[i]>0):
                         mtypes=np.append(mtypes,0)
                     else:
                         mtypes=np.append(mtypes,1)
