@@ -56,7 +56,7 @@ Pk = Pk/(100/params.h0true)**3
 
 # Setting cosmology for concentrations
 pdict = {'flat': True, 'H0': params.h0true, 'Om0': params.omega0, 'Ob0': params.omegabaryon,\
-          'sigma8': params.sigma8, 'ns': params.ns}
+        'sigma8': params.sigma8, 'ns': params.ns, 'relspecies': params.relspecies}
 colossus.addCosmology('myCosmo', pdict)
 colossus.setCosmology('myCosmo'); del pdict
 

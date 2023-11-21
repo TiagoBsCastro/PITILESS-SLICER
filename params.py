@@ -18,6 +18,7 @@ size = comm.Get_size()
 ###############################################################
 
 TCMB = 2.7255 # Only used if IC Pk was given by camb
+relspecies = False # Wether PINOCCHIO uses relativistic species in the background
 
 ###############################################################
 ######################### C-M Parameters ######################
