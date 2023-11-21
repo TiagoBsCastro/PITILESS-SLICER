@@ -208,7 +208,7 @@ if os.path.isfile(paramfilename):
 
    except FileNotFoundError:
 
-       sys.exit(-1)
+       raise
 
    except RuntimeError:
 
