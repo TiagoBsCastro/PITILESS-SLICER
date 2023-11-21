@@ -176,7 +176,7 @@ for z in params.redshifts:
                      ( np.abs(np.sum(totpart) - params.nparticles)//size + np.abs(np.sum(totpart) - params.nparticles)%size )
 
     # Boolean variable in case only the master have to readjust number of particles
-    only_master = (np.sum(totpart) - params.nparticles) and not np.bool( np.abs(np.sum(totpart) - params.nparticles)//size )
+    only_master = (np.sum(totpart) - params.nparticles) and not np.bool_( np.abs(np.sum(totpart) - params.nparticles)//size )
     print("## Total number of particles:    {}".format( np.sum(totpart) ))
     print("## Expected number of particles: {}".format( params.nparticles))
 
