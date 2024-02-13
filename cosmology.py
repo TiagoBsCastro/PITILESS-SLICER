@@ -60,6 +60,13 @@ pdict = {'flat': True, 'H0': params.h0true, 'Om0': params.omega0, 'Ob0': params.
 colossus.addCosmology('myCosmo', pdict)
 colossus.setCosmology('myCosmo'); del pdict
 
+# PowerLaw Pk case
+if params.ns < 0.0:
+    colossus.setCosmology(f'powerlaw_{params.ns}', flat = True, H0=params.h0true, Om0=params.omega0, Ob0=params.omegabaryon, sigma8=params.sigma8, ns=params.ns, relspecies=params.relspecies)
+else:
+# General case
+    colossus.setCosmology('myCosmo'); del pdict
+    
 class PolyFitOrderTooLow (Exception):
     pass
 
