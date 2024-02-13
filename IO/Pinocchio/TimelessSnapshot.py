@@ -133,12 +133,12 @@ class timeless_snapshot:
 
             vel = ( thisD * self.V1 + thisD2 * self.V2 + \
                 thisD31 * self.V31 + thisD32 * self.V32 ) * self.Lbox * \
-                thisa * cosmo.lcdm.H(z).value
+                thisa * cosmo.lcdm.H(z).value * np.sqrt(thisa)
 
         else:
 
             vel = ( thisD * self.V1 + thisD2 * self.V2 + thisD31 * self.V31 +\
-                    thisD32 * self.V32 )[filter] * self.Lbox * thisa * cosmo.lcdm.H(z).value
+                    thisD32 * self.V32 )[filter] * self.Lbox * thisa * cosmo.lcdm.H(z).value * np.sqrt(thisa)
 
         return vel
 
