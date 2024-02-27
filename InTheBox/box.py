@@ -10,6 +10,7 @@ import numpy as np
 import contextlib
 import resource
 from IO.Utils.print import print
+import os
 
 ############################### Setting MPI4PY #############################
 
@@ -66,6 +67,7 @@ print("# Reading Timeless Snapshot:")
 snap = snapshot.timeless_snapshot(params.pintlessfile, randomize=False, changebasis=False)
 dummy_head = deepcopy(snap.Header)
 print("# Time spent: {0:.3f} s".format(time.time() - start))
+
 ###########################################################################
 
 # Looping on the outputlist redshifts
@@ -73,49 +75,52 @@ for z in params.redshifts:
 
     # Working on the particles inside Halos
     start = time.time()
-    print("# Reading catalog: {}".format( params.pincatfile.format(z)))
-    with nostdout():
-        try:
-            cat = catalog(params.pincatfile.format(z))
-        except IndexError:
-            cat = catalog5(params.pincatfile.format(z))
-    print("# Time spent: {0:.3f} s".format( time.time() - start))
+    print("# Reading catalog: {}".format(params.pincatfile.format(z)))
+    cat_file = params.pincatfile.format(z)
 
-    if cat.Mass.size != 0:
+    if os.path.getsize(cat_file) !=0 :
+        with nostdout():
+            try:
+                cat = catalog(cat_file)
+            except IndexError:
+                cat = catalog5(cat_file)
+        print("# Time spent: {0:.3f} s".format( time.time() - start))
 
-        pos1 = np.repeat(cat.pos, cat.Npart, axis=0)
-        vel1 = np.repeat(cat.vel, cat.Npart, axis=0)\
+        if cat.Mass.size != 0:
+
+            pos1 = np.repeat(cat.pos, cat.Npart, axis=0)
+            vel1 = np.repeat(cat.vel, cat.Npart, axis=0)\
               + np.random.randn( np.sum(cat.Npart), 3 ) * 150.0 # Maxwell distribution of velocities with 150 km/s dispersion
 
-        rhoc = cosmology.lcdm.critical_density(z).to("M_sun/Mpc^3").value/(1+z)**3
-        rDelta = (3*cat.Mass/4/np.pi/200/rhoc)**(1.0/3)
+            rhoc = cosmology.lcdm.critical_density(z).to("M_sun/Mpc^3").value/(1+z)**3
+            rDelta = (3*cat.Mass/4/np.pi/200/rhoc)**(1.0/3)
 
-        # Getting concentration
-        start = time.time()
-        print("## Computing concentrations".format())
-        if params.cmmodel == 'mybhattacharya':
+            # Getting concentration
+            start = time.time()
+            print("## Computing concentrations".format())
+            if params.cmmodel == 'mybhattacharya':
 
-            # Bahattacharya fits for nu and c(M) - Table-2/200c-Full
-            Da   = np.interp(1.0/(1.0+z), cosmology.a, cosmology.D)
-            nu   = 1.0/Da * (1.12*(cat.Mass/5.0/1e13)**0.3 + 0.53 )
-            conc = (Da**0.54 * 5.9 * nu**(-0.35)).astype(np.float32)
+                # Bahattacharya fits for nu and c(M) - Table-2/200c-Full
+                Da   = np.interp(1.0/(1.0+z), cosmology.a, cosmology.D)
+                nu   = 1.0/Da * (1.12*(cat.Mass/5.0/1e13)**0.3 + 0.53 )
+                conc = (Da**0.54 * 5.9 * nu**(-0.35)).astype(np.float32)
 
-        else:
+            else:
 
-            minterp = np.geomspace(cat.Mass.min(), cat.Mass.max())
-            cinterp = concentration.concentration(minterp, '200c', z, model = params.cmmodel)
-            conc    = np.array([np.interp(m, minterp, cinterp) for m in cat.Mass], dtype=np.float32)
+                minterp = np.geomspace(cat.Mass.min(), cat.Mass.max())
+                cinterp = concentration.concentration(minterp, '200c', z, model = params.cmmodel)
+                conc    = np.array([np.interp(m, minterp, cinterp) for m in cat.Mass], dtype=np.float32)
 
-        print("## Time spent: {0:.3f} s".format( time.time() - start))
+            print("## Time spent: {0:.3f} s".format( time.time() - start))
 
-        start = time.time()
-        print("## Sampling Particles in Halos")
-        r = np.empty( np.sum(cat.Npart), dtype=np.float32 )
-        theta = np.empty( np.sum(cat.Npart), dtype=np.float32 )
-        phi = np.empty( np.sum(cat.Npart), dtype=np.float32 )
-        NFW.random_nfw(cat.Npart.astype(np.int32), conc, rDelta.astype(np.float32), r, theta, phi)
-        pos1 = pos1 + np.transpose([r*np.sin(theta)*np.cos(phi), r*np.sin(theta)*np.sin(phi), r*np.cos(theta)])
-        print("## Time spent: {0:.3f} s".format( time.time() - start))
+            start = time.time()
+            print("## Sampling Particles in Halos")
+            r = np.empty( np.sum(cat.Npart), dtype=np.float32 )
+            theta = np.empty( np.sum(cat.Npart), dtype=np.float32 )
+            phi = np.empty( np.sum(cat.Npart), dtype=np.float32 )
+            NFW.random_nfw(cat.Npart.astype(np.int32), conc, rDelta.astype(np.float32), r, theta, phi)
+            pos1 = pos1 + np.transpose([r*np.sin(theta)*np.cos(phi), r*np.sin(theta)*np.sin(phi), r*np.cos(theta)])
+            print("## Time spent: {0:.3f} s".format( time.time() - start))
 
     start = time.time()
     print("## Displacing Particles outside Halos")
@@ -126,12 +131,19 @@ for z in params.redshifts:
     vel2 = snap.snapVel(z, filter=filter)
     print("## Time spent: {0:.3f} s".format( time.time() - start))
 
-    if cat.Mass.size != 0:
+    if os.path.getsize(cat_file) !=0 :
+        with nostdout():
+            try:
+                cat = catalog(cat_file)
+            except IndexError:
+                cat = catalog5(cat_file)
+        
+        if cat.Mass.size != 0 :
 
-        pos = np.vstack([pos1, pos2])/params.boxsize
-        vel = np.vstack([vel1, vel2])
+            pos = np.vstack([pos1, pos2])/params.boxsize
+            vel = np.vstack([vel1, vel2])
 
-        del pos1, pos2, vel1, vel2
+            del pos1, pos2, vel1, vel2
 
     else:
 

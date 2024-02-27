@@ -55,7 +55,7 @@ class timeless_snapshot:
         # Recentering the box
         #self.qPos = np.array([ (self.ID-1)%self.NG,((self.ID-1)//self.NG)%self.NG,\
         #                          ((self.ID-1)//self.NG**2)%self.NG ]).transpose() * self.Cell + self.Cell/2.
-        self.qPos = (np.array([(self.ID)//self.NG//self.NG, ((self.ID)//self.NG)%self.NG, self.ID%self.NG]).transpose() * self.Cell + self.Cell/2)/self.Lbox
+        self.qPos = (np.array([(self.ID -1 )//self.NG//self.NG, ((self.ID-1)//self.NG)%self.NG, (self.ID - 1)%self.NG]).transpose() * self.Cell + self.Cell/2)/self.Lbox
         #define INDEX_TO_COORD(I,X,Y,Z,L) ({Z=(I)%L[_z_]; int _KK_=(I)/L[_z_]; Y=_KK_%L[_y_]; X=_KK_/L[_y_];})
 
         if randomize:
