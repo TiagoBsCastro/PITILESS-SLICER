@@ -206,6 +206,7 @@ for z in params.redshifts:
             idxs = np.random.permutation(pos.shape[0])[ : exclusions]
             pos = np.delete(pos, idxs, 0)
             vel = np.delete(vel, idxs, 0)
+            ids = np.delete(ids, idxs, 0)
 
         else:
 
@@ -213,6 +214,7 @@ for z in params.redshifts:
             idxs = np.random.randint(0, pos.shape[0], -exclusions)
             pos = np.vstack([pos, pos[idxs]])
             vel = np.vstack([vel, vel[idxs]])
+            ids = np.vstack([ids, ids[idxs]])
 
         npart = pos.shape[0]
         # Updating totpart in case all threads have to adjust the number of particles
