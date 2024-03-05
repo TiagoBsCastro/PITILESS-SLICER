@@ -125,10 +125,10 @@ for z in params.redshifts:
     start = time.time()
     print("## Displacing Particles outside Halos")
     filter = (snap.Zacc <= z)
-    #pos2 = snap.snapPos(z, zcentered=False, filter=filter) + params.boxsize/2
     pos2 = snap.snapPos(z, zcentered=False) + params.boxsize/2
     pos2 = pos2[filter]
     vel2 = snap.snapVel(z, filter=filter)
+    ids1, ids2 = snap.ID[~filter], snap.ID[filter]
     print("## Time spent: {0:.3f} s".format( time.time() - start))
 
     if os.path.getsize(cat_file) !=0 :
@@ -142,15 +142,17 @@ for z in params.redshifts:
 
             pos = np.vstack([pos1, pos2])/params.boxsize
             vel = np.vstack([vel1, vel2])
+            ids = np.vstack([ids1, ids2])
 
-            del pos1, pos2, vel1, vel2
+            del pos1, pos2, vel1, vel2, ids1, ids2
 
     else:
 
         pos = pos2/params.boxsize
         vel = vel2
+        ids = ids2
 
-        del pos2, vel2
+        del pos2, vel2, ids2
 
     # Wrapping positions
     pos = pos.astype(np.float32)
@@ -241,11 +243,6 @@ for z in params.redshifts:
     comm.barrier()
     totpart = comm.bcast(totpart, root=0)
     # Updating structures
-    if rank:
-        ids = np.arange(np.cumsum(totpart)[rank-1], np.cumsum(totpart)[rank])
-    else:
-        ids = np.arange(0, totpart[rank])
-
     print("## Time spent: {0:.3f} s".format( time.time() - start))
 
     dummy_head.redshift = z
