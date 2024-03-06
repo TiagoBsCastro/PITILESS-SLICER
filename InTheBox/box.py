@@ -142,7 +142,7 @@ for z in params.redshifts:
 
             pos = np.vstack([pos1, pos2])/params.boxsize
             vel = np.vstack([vel1, vel2])
-            ids = np.vstack([ids1, ids2])
+            ids = np.concatenate((ids1, ids2))
 
             del pos1, pos2, vel1, vel2, ids1, ids2
 
@@ -214,7 +214,7 @@ for z in params.redshifts:
             idxs = np.random.randint(0, pos.shape[0], -exclusions)
             pos = np.vstack([pos, pos[idxs]])
             vel = np.vstack([vel, vel[idxs]])
-            ids = np.vstack([ids, ids[idxs]])
+            ids = np.concatenate((ids, ids[idxs]))
 
         npart = pos.shape[0]
         # Updating totpart in case all threads have to adjust the number of particles
