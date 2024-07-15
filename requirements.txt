@@ -12,4 +12,4 @@ numpy==1.25.2
 pyccl==2.5.1
 Pylians==0.7
 scipy==1.11.3
-setuptools==68.0.0
+setuptools==70.0.0
